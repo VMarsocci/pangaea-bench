@@ -4,7 +4,7 @@ import rasterio
 import pathlib
 import concurrent.futures
 from google.cloud.storage import Client
-
+import zipfile
 
 
 # Utility progress bar handler for urlretrieve
@@ -94,3 +94,24 @@ def read_tif_with_metadata(file: pathlib.Path):
         transform = dataset.transform
         crs = dataset.crs
     return arr.transpose((1, 2, 0)), transform, crs
+
+
+def decompress_zip_with_progress(zip_file_path, extract_to_folder=None):
+    """Decompress a zip file with a progress bar and remove the symlink."""
+    if extract_to_folder is None:
+        extract_to_folder = zip_file_path.parent
+
+    with zipfile.ZipFile(zip_file_path, "r") as zip_ref:
+        file_names = zip_ref.namelist()
+        total_files = len(file_names)
+
+        # Initialize the progress bar with the total number of files
+        with tqdm.tqdm(total=total_files, unit="file", desc=f"Extracting {zip_file_path.name}") as pbar:
+            for file in file_names:
+                # Extract each file
+                zip_ref.extract(file, extract_to_folder)
+                # Update the progress bar
+                pbar.update(1)
+
+    # remove zip file
+    zip_file_path.unlink()

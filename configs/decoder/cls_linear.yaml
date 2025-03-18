@@ -1,0 +1,5 @@
+_target_: pangaea.decoders.linearclassifier.LinearClassifier
+
+encoder: null
+num_classes: ${dataset.num_classes}
+finetune: ${finetune}

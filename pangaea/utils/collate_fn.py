@@ -44,6 +44,7 @@ def get_collate_fn(modalities: list[str]) -> Callable:
                 for modality in modalities
             },
             "target": torch.stack([x["target"] for x in batch]),
+            "metadata": [sample["metadata"] for sample in batch]
         }
 
     return collate_fn

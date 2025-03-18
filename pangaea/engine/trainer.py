@@ -354,6 +354,129 @@ class Trainer:
             v.reset()
 
 
+class ClassificationTrainer(Trainer):
+    def __init__(
+        self,
+        model: nn.Module,
+        train_loader: DataLoader,
+        criterion: nn.Module,
+        optimizer: Optimizer,
+        lr_scheduler: LRScheduler,
+        evaluator: torch.nn.Module,
+        n_epochs: int,
+        exp_dir: pathlib.Path | str,
+        device: torch.device,
+        precision: str,
+        use_wandb: bool,
+        ckpt_interval: int,
+        eval_interval: int,
+        log_interval: int,
+        best_metric_key: str,
+        multi_label: bool = False,  # <-- Flag for multi-label classification, e.g., BigEarthNet dataset
+        topk: int = 1,  # Top-k predictions to use in multi-label scenario
+    ):
+        """Initialize the Trainer for Classification task.
+
+        Args:
+            model (nn.Module): model to train (encoder + decoder).
+            train_loader (DataLoader): train data loader.
+            criterion (nn.Module): criterion to compute the loss.
+            optimizer (Optimizer): optimizer to update the model's parameters.
+            lr_scheduler (LRScheduler): lr scheduler to update the learning rate.
+            evaluator (torch.nn.Module): task evaluator to evaluate the model.
+            n_epochs (int): number of epochs to train the model.
+            exp_dir (pathlib.Path | str): path to the experiment directory.
+            device (torch.device): model
+            precision (str): precision to train the model (fp32, fp16, bfp16).
+            use_wandb (bool): whether to use wandb for logging.
+            ckpt_interval (int): interval to save the checkpoint.
+            eval_interval (int): interval to evaluate the model.
+            log_interval (int): interval to log the training information.
+            best_metric_key (str): metric that determines best checkpoints.
+            multi_label (bool): Flag to enable multi-label classification.
+        """
+        super().__init__(
+            model=model,
+            train_loader=train_loader,
+            criterion=criterion,
+            optimizer=optimizer,
+            lr_scheduler=lr_scheduler,
+            evaluator=evaluator,
+            n_epochs=n_epochs,
+            exp_dir=exp_dir,
+            device=device,
+            precision=precision,
+            use_wandb=use_wandb,
+            ckpt_interval=ckpt_interval,
+            eval_interval=eval_interval,
+            log_interval=log_interval,
+            best_metric_key=best_metric_key,
+        )
+        
+        self.multi_label = multi_label
+        self.topk = topk
+
+        self.training_metrics = {
+            name: RunningAverageMeter(length=100) for name in ["accuracy", "F1"]
+        }
+        self.best_metric = float("-inf")
+        self.best_metric_comp = operator.gt
+
+    def compute_loss(self, logits: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+
+        return self.criterion(logits, target)
+
+    def compute_logging_metrics(
+        self, logits: torch.Tensor, targets: torch.Tensor
+    ) -> None:
+        """Compute logging metrics.
+        For multi-label:
+        - Uses sigmoid activation and top-k selection.
+        For single-class:
+        - Uses argmax and converts predictions to one-hot encoding.
+
+        Args:
+            logits (torch.Tensor): logits from the decoder.
+            target (torch.Tensor): target tensor.
+        """
+        if self.multi_label:
+            preds_prob = torch.sigmoid(logits)
+            topk_indices = preds_prob.topk(self.topk, dim=1).indices  
+            preds = torch.zeros_like(preds_prob, dtype=torch.bool)
+            preds.scatter_(1, topk_indices, 1)
+        else:
+            preds = torch.argmax(logits, dim=1)
+            
+            one_hot_preds = torch.zeros(
+                size=(preds.size(0), self.num_classes),
+                device=preds.device,
+                dtype=torch.bool
+            )
+            one_hot_preds.scatter_(1, preds.unsqueeze(1), 1)
+            preds = one_hot_preds
+            # Convert targets to one-hot.
+            one_hot_targets = torch.zeros_like(preds)
+            one_hot_targets.scatter_(1, targets.unsqueeze(1), 1)
+            targets = one_hot_targets
+        
+        # Micro-average: aggregate across all classes.
+        preds = preds.bool()
+        targets = targets.bool()
+        TP = (preds & targets).sum().float()
+        FP = (preds & ~targets).sum().float()
+        FN = (~preds & targets).sum().float()
+        TN = (~preds & ~targets).sum().float()
+        
+        acc = (TP + TN) / (TP + TN + FP + FN + 1e-8) 
+        precision = TP / (TP + FP + 1e-8) 
+        recall = TP / (TP + FN + 1e-8)  
+        f1 = 2 * precision * recall / (precision + recall + 1e-8)
+
+        self.training_metrics["accuracy"].update(acc.item())
+        self.training_metrics["F1"].update(f1.item())
+    
+
+
 class SegTrainer(Trainer):
     def __init__(
         self,
