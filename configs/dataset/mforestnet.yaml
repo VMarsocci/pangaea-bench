@@ -1,0 +1,34 @@
+_target_: pangaea.datasets.geobench.mforestnet.mForestnet
+dataset_name: mForestnet
+root_path: ${oc.env:GEO_BENCH_DIR}/classification_v1.0/m-forestnet
+download_url: "recursix/geo-bench-1.0"
+auto_download: True
+
+num_classes: 12
+img_size: 332
+multi_temporal: False
+multi_modal: False
+
+ignore_index: -100
+classes:  ['', '', '', '', '', '', '', '', '', '', '', '']
+distribution: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+# data stats
+bands:
+  optical:
+    - B4
+    - B3
+    - B2
+    - B5
+    - B6
+    - B7
+
+data_mean:
+  optical: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+data_std:
+  optical: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+data_min:
+  optical: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+data_max:
+  optical: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
