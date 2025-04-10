@@ -1,0 +1,58 @@
+_target_: pangaea.datasets.potsdam.Potsdam
+dataset_name: Potsdam
+root_path: ./data/potsdam
+download_url: https://seafile.projekt.uni-hannover.de/f/429be50cc79d423ab6c4/
+download_password: CjwcipT4-P8g
+auto_download: True
+
+img_size: 512
+multi_temporal: False
+multi_modal: False
+
+ignore_index: 5 # ignore clutter/background class
+num_classes: 6
+classes:
+  - Imprevious surfaces
+  - Building
+  - Low vegetation
+  - Tree
+  - Car
+  - Clutter/background
+
+distribution:
+  - 0.28696548
+  - 0.2480703
+  - 0.22074268
+  - 0.15313488
+  - 0.01706169
+  - 0.04752915
+
+bands:
+  optical:
+    - B8
+    - B4
+    - B3
+
+data_mean:
+  optical:
+    - 97.63989512
+    - 92.5452277
+    - 85.91596489
+
+data_std:
+  optical:
+    - 36.24336011
+    - 35.37055381
+    - 36.7770995
+
+data_max:
+  optical:
+    - 255.0
+    - 255.0
+    - 255.0
+
+data_min:
+  optical:
+    - 0.0
+    - 1.0
+    - 1.0
