@@ -43,15 +43,31 @@ class UNet(Encoder):
             download_url=download_url,
         )
 
-        # TODO: now only supports optical bands for single time frame
-        self.in_channels = len(input_bands["optical"])  # number of optical bands
+        if "optical" in input_bands and "sar" in input_bands:
+            self.in_channels = len(input_bands["optical"]) + len(input_bands["sar"])
+        elif "optical" in input_bands:
+            self.in_channels = len(input_bands["optical"])
+        elif "sar" in input_bands:
+            self.in_channels = len(input_bands["sar"])
+        else:
+            raise ValueError("No valid bands found in the input_bands")
         self.topology = topology
 
         self.in_conv = InConv(self.in_channels, self.topology[0], DoubleConv)
         self.encoder = UNet_Encoder(self.topology)
 
     def forward(self, image):
-        x = image["optical"].squeeze(2)  # squeeze the time dimension
+        
+        if "optical" in image and "sar" in image:
+            # Concatenate optical and sar bands
+            x = torch.cat([image["optical"].squeeze(2), image["sar"].squeeze(2)], dim=1)
+        elif "optical" in image:
+            x = image["optical"].squeeze(2)
+        elif "sar" in image:
+            x = image["sar"].squeeze(2)
+        else:
+            raise ValueError("No valid bands found in the image")
+        
         feat = self.in_conv(x)
         output = self.encoder(feat)
         return output
@@ -96,7 +112,15 @@ class UNetMT(Encoder):
             download_url=download_url,
         )
 
-        self.in_channels = len(input_bands["optical"])  # number of optical bands
+        if "optical" in input_bands and "sar" in input_bands:
+            self.in_channels = len(input_bands["optical"]) + len(input_bands["sar"])
+        elif "optical" in input_bands:
+            self.in_channels = len(input_bands["optical"])
+        elif "sar" in input_bands:
+            self.in_channels = len(input_bands["sar"])
+        else:
+            raise ValueError("No valid bands found in the input_bands")
+            
         self.topology = topology
 
         self.in_conv = InConv(self.in_channels, self.topology[0], DoubleConv)
@@ -107,7 +131,16 @@ class UNetMT(Encoder):
         )
 
     def forward(self, image):
-        x = image["optical"]
+        if "optical" in image and "sar" in image:
+            # Concatenate optical and sar bands
+            x = torch.cat([image["optical"].squeeze(2), image["sar"].squeeze(2)], dim=1)
+        elif "optical" in image:
+            x = image["optical"].squeeze(2)
+        elif "sar" in image:
+            x = image["sar"].squeeze(2)
+        else:
+            raise ValueError("No valid bands found in the image")
+            
         b, c, t, h, w = x.shape
         # merge time and channels dimension
         x = x.reshape(b, c * t, h, w)
