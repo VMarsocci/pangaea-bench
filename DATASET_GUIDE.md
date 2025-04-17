@@ -158,7 +158,7 @@ This document provides a detailed overview of the datasets used in this reposito
    --config-name=train \
    dataset=spacenet7 \
    encoder=remoteclip \
-   decoder=seg_upernet\
+   decoder=seg_upernet \
    preprocessing=seg_default \
    criterion=dice \
    task=segmentation
@@ -169,7 +169,7 @@ This document provides a detailed overview of the datasets used in this reposito
    --config-name=train \
    dataset=spacenet7cd \
    encoder=remoteclip \
-   decoder=seg_siamupernet_conc\
+   decoder=seg_siamupernet_conc \
    preprocessing=seg_default \
    criterion=dice \
    task=change_detection
@@ -188,8 +188,10 @@ This document provides a detailed overview of the datasets used in this reposito
    encoder=remoteclip \
    decoder=seg_upernet \
    preprocessing=seg_default \
-   criterion=cross_entropy \
-   task=segmentation
+   criterion=dice \
+   task=segmentation \
+   data_replicate=2 \
+   task.trainer.best_metric_key=IoU
   ```
   
 ### BioMassters
