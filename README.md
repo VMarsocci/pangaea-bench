@@ -2,7 +2,10 @@
 
 # PANGAEA: A Global and Inclusive Benchmark for Geospatial Foundation Models
 
-🔥 The [pre-print](https://arxiv.org/abs/2412.04204) is out!
+📢 **News**
+ - [23/04/2025] we pushed a new version of the code, fixing different bugs (e.g. commands are working for all the datasets now, metric computation with ignore_index is fixed, etc...). In the next month, we will provide: all downloadable datasets and models, downloadable stratified subsamples for all the datasets, classification. Stay tuned!
+ - [22/04/2025] on EarthDay, PANGAEA was officialy adopted to benchmark TerraMind. Read the [news](https://www.linkedin.com/posts/simonetta-cheli-7669879b_earthday-earthobservation-activity-7320439907028467712-LSzl?utm_source=share&utm_medium=member_desktop&rcm=ACoAACdT8q0BDNWYKAdDYGUe_X4fQOzSHO8jgAs) and the [pre-print](https://arxiv.org/abs/2504.11171). We will release the benchmarking code in PANGAEA very soon!
+ - [05/12/2024] the [pre-print](https://arxiv.org/abs/2412.04204) is out!
 
 ## 📚 Introduction
 
