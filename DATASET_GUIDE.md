@@ -2,8 +2,7 @@
 
 This document provides a detailed overview of the datasets used in this repository. For each dataset, you will find instructions on how to prepare the data, along with command-line examples for running models. 
 
-*DISCLAIMER*: please consider that we provide the detailed overview for the datasets included in the original repo. Community-contributed datasets don't directly come with the specific command-lines. Following the list of available datasets from the community:
-- Potsdam dataset. [Link](https://www.isprs.org/education/benchmarks/UrbanSemLab/2d-sem-label-potsdam.aspx)
+*DISCLAIMER*: please consider that we provide the detailed overview for the datasets included in the original repo. Community-contributed datasets may not come with pre-defined command-line examples in this repository. Feel free to adapt the existing examples based on your use case. 
 
 ### HLSBurnScars
 
@@ -222,3 +221,16 @@ This document provides a detailed overview of the datasets used in this reposito
    task=regression
    ```
   In this case, you can specify in the `temp` parameter which frame you want to use.
+
+**Note**: The following datasets are **community-contributed** and are not part of the original benchmark repository. 
+### Potsdam
+   ```
+   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=potsdam \
+   encoder=dofa \
+   decoder=seg_upernet \
+   preprocessing=seg_default \
+   criterion=cross_entropy \
+   task=segmentation
+  ```
