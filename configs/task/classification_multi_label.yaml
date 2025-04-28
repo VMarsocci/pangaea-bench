@@ -1,0 +1,34 @@
+trainer:
+  _target_: pangaea.engine.trainer.ClassificationTrainer
+  # params overwritten in run
+  model: null
+  train_loader: null
+  optimizer: null
+  lr_scheduler: null
+  evaluator: null
+  exp_dir: null
+  device: null
+  criterion: null
+  multi_label: true
+  topk: 1
+
+  # params to adapt
+  n_epochs: 50
+  precision: fp32
+  ckpt_interval: 50
+  eval_interval: 5
+  log_interval: 5
+  best_metric_key: F1
+  use_wandb: ${use_wandb}
+
+evaluator:
+  _target_: pangaea.engine.evaluator.ClassificationEvaluator
+  # params overwritten in run
+  val_loader: null
+  exp_dir: null
+  device: null
+  use_wandb: ${use_wandb}
+  inference_mode: null
+  sliding_inference_batch: null
+  multi_label: true
+  topk: 1

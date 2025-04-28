@@ -3,6 +3,8 @@ import os
 import time
 from pathlib import Path
 import math
+import numpy as np
+import sklearn.metrics
 import wandb
 
 import torch
@@ -126,6 +128,137 @@ class Evaluator:
             merged_pred = F.interpolate(merged_pred, size=output_shape, mode="bilinear")
 
         return merged_pred
+
+
+class ClassificationEvaluator(Evaluator):
+    def __init__(
+        self,
+        val_loader,
+        exp_dir: str | Path,
+        device: torch.device,
+        inference_mode: str = "whole",
+        sliding_inference_batch: int = None,
+        use_wandb: bool = False,
+        multi_label: bool = False,   # Flag to indicate multi-label evaluation
+        topk: int = 1,               # For multi-label: if > 1, use top-k selection
+    ) -> None:
+        super().__init__(val_loader, exp_dir, device, inference_mode, sliding_inference_batch, use_wandb)
+        self.multi_label = multi_label
+        self.topk = topk
+        
+    def evaluate(
+        self, 
+        model: torch.nn.Module, 
+        model_name: str, 
+        model_ckpt_path: str | Path | None = None):
+        
+        t = time.time()
+        if model_ckpt_path is not None:
+            model_dict = torch.load(model_ckpt_path, map_location=self.device)
+            model_name = os.path.basename(model_ckpt_path).split(".")[0]
+            if "model" in model_dict:
+                model.module.load_state_dict(model_dict["model"])
+            else:
+                model.module.load_state_dict(model_dict)
+            self.logger.info(f"Loaded {model_name} for evaluation")
+        
+        model.eval()
+        
+        all_preds = []
+        all_targets = []
+        total_correct = 0
+        total_samples = 0
+        
+        tag = f"Evaluating {model_name} on {self.split} set"
+        for batch_idx, data in enumerate(tqdm(self.val_loader, desc=tag)):
+            image, target = data["image"], data["target"]
+            image = {k: v.to(self.device) for k, v in image.items()}
+            target = target.to(self.device)
+            
+            with torch.no_grad():
+                logits = model(image)
+            
+            if self.multi_label:
+                # Multi-label evaluation:
+                # Option 1: If topk > 1, select top-k indices; otherwise, threshold at 0.5.
+                preds_prob = torch.sigmoid(logits)
+                if self.topk > 1:
+                    topk_indices = preds_prob.topk(self.topk, dim=1).indices  # shape: (B, topk)
+                    preds = torch.zeros_like(preds_prob, dtype=torch.int)
+                    preds.scatter_(1, topk_indices, 1)
+                else:
+                    preds = (preds_prob > 0.5).int()
+
+                all_preds.append(preds.cpu().numpy())
+                all_targets.append(target.cpu().numpy())
+            else:
+                preds = torch.argmax(logits, dim=1)  
+
+                total_correct += (preds == target).sum().item()
+                total_samples += target.numel()
+                all_preds.append(preds.cpu().numpy())
+                all_targets.append(target.cpu().numpy())
+        
+        all_preds = np.concatenate(all_preds, axis=0)
+        all_targets = np.concatenate(all_targets, axis=0)
+        
+        
+        if self.multi_label:
+            # For multi-label, accuracy is computed as the subset accuracy.
+            accuracy = sklearn.metrics.accuracy_score(all_targets, all_preds)
+            precision, recall, f1, _ = sklearn.metrics.precision_recall_fscore_support(
+                all_targets, all_preds, average="micro", zero_division=0)
+        else:
+            # For single-class tasks, overall accuracy is computed.
+            accuracy = total_correct / total_samples if total_samples > 0 else 0
+
+            precision, recall, f1, _ = sklearn.metrics.precision_recall_fscore_support(
+                    all_targets, all_preds,labels=list(range(self.num_classes)), average="macro", zero_division=0)
+        
+        metrics = {
+            "accuracy": accuracy,
+            "precision": precision,
+            "recall": recall,
+            "F1": f1,
+        }
+        
+        self.log_metrics(metrics)
+        used_time = time.time() - t
+        return metrics, used_time
+    
+    def __call__(self, model, model_name, model_ckpt_path=None):
+        return self.evaluate(model, model_name, model_ckpt_path)
+    
+    def compute_metrics(self):
+        pass
+
+    def log_metrics(self, metrics: dict):
+        def format_metric(name, value):
+            header = f"------- {name} --------\n"
+            value_str = (
+                "-------------------\n"
+                + "Mean".ljust(self.max_name_len, " ")
+                + "\t{:>7}".format("%.3f" % value)
+            )
+            return header + value_str
+
+        acc_str = format_metric("Accuracy", metrics["accuracy"])
+        prec_str = format_metric("Precision", metrics["precision"])
+        recall_str = format_metric("Recall", metrics["recall"])
+        f1_str = format_metric("F1-score", metrics["F1"])
+        self.logger.info(acc_str)
+        self.logger.info(prec_str)
+        self.logger.info(recall_str)
+        self.logger.info(f1_str)
+
+        if self.use_wandb and self.rank == 0:
+            wandb.log({
+                f"{self.split}_accuracy": metrics["accuracy"],
+                f"{self.split}_precision": metrics["precision"],
+                f"{self.split}_recall": metrics["recall"],
+                f"{self.split}_f1": metrics["F1"],
+            })
+        
 
 
 class SegEvaluator(Evaluator):
