@@ -36,7 +36,7 @@ class RunningAverageMeter(object):
 
     def reset(self):
         self.queue = []
-        self.prt = 0
+        self.ptr = 0
         self.val = 0
         self.avg = 0
         self.sum = 0
