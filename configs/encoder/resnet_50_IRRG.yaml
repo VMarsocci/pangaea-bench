@@ -1,0 +1,16 @@
+_target_: pangaea.encoders.resnet_encoder.ResNetEncoder
+encoder_weights: DEFAULT
+input_size: 512
+depth: 50
+
+input_bands:
+  optical:
+    - B4
+    - B3
+    - B8 # replaced Blue channel with IR channel for potsdam dataset
+  
+output_layers:
+  - 4
+  - 5
+  - 6
+  - 7
