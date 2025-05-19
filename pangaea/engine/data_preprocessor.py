@@ -9,6 +9,8 @@ import torchvision.transforms as T
 import torchvision.transforms.functional as TF
 from hydra.utils import instantiate
 
+from enum import Enum # Needed for isinstance check
+
 
 class BasePreprocessor:
     """Base class for preprocessor."""
@@ -670,7 +672,7 @@ class Resize(BasePreprocessor):
     def __init__(
         self,
         size: int | Sequence[int],
-        interpolation=T.InterpolationMode.BILINEAR,
+        interpolation=T.InterpolationMode.BILINEAR, # Keep default as enum
         antialias: Optional[bool] = True,
         resize_target: bool = True,
         **meta,
@@ -679,8 +681,8 @@ class Resize(BasePreprocessor):
         Args:
         size (sequence or int): Desired output size. If size is a sequence like
             (h, w), output size will be matched to this.
-        interpolation (InterpolationMode): Desired interpolation enum defined by
-            :class:`torchvision.transforms.InterpolationMode`.
+        interpolation (InterpolationMode or str): Desired interpolation enum defined by
+            :class:`torchvision.transforms.InterpolationMode` or its string name (e.g., 'bilinear').
         antialias (bool, optional): Whether to apply antialiasing.
         resize_target (bool, optional): Whether to resize the target
         meta: statistics/info of the input data and target encoder
@@ -695,10 +697,25 @@ class Resize(BasePreprocessor):
             size, error_msg="Please provide only two dimensions (h, w) for size."
         )
 
-        if isinstance(interpolation, int):
-            interpolation = TF._interpolation_modes_from_int(interpolation)
+        # --- START FIX: Handle string interpolation ---
+        if isinstance(interpolation, str):
+            try:
+                # Convert string (e.g., "bilinear") to enum (e.g., T.InterpolationMode.BILINEAR)
+                interpolation_enum = T.InterpolationMode[interpolation.upper()]
+            except KeyError:
+                raise ValueError(f"Invalid interpolation mode string: '{interpolation}'. Choose from {list(T.InterpolationMode.__members__.keys())}")
+        elif isinstance(interpolation, int):
+             # Keep existing Pillow integer constant handling
+            interpolation_enum = TF._interpolation_modes_from_int(interpolation)
+        elif isinstance(interpolation, T.InterpolationMode):
+             # If it's already an enum, use it directly
+             interpolation_enum = interpolation
+        else:
+             # Raise error for unexpected types
+             raise TypeError(f"Interpolation must be a string, int, or InterpolationMode enum. Got {type(interpolation)}")
+        # --- END FIX ---
 
-        self.interpolation = interpolation
+        self.interpolation = interpolation_enum # Store the final enum value
         self.antialias = antialias
         self.resize_target = resize_target
 
@@ -723,23 +740,28 @@ class Resize(BasePreprocessor):
             data["image"][k] = TF.resize(
                 data["image"][k],
                 self.size,
-                interpolation=self.interpolation,
+                interpolation=self.interpolation, # Use the stored enum value
                 antialias=self.antialias,
             )
 
         if self.resize_target:
-            if torch.is_floating_point(data["target"]):
-                data["target"] = TF.resize(
-                    data["target"].unsqueeze(0),
-                    size=self.size,
-                    interpolation=T.InterpolationMode.BILINEAR,
-                ).squeeze(0)
-            else:
-                data["target"] = TF.resize(
-                    data["target"].unsqueeze(0),
-                    size=self.size,
-                    interpolation=T.InterpolationMode.NEAREST,
-                ).squeeze(0)
+            # Determine interpolation for target: Use NEAREST for integer/mask targets, BILINEAR for float targets
+            target_interpolation = T.InterpolationMode.NEAREST if not torch.is_floating_point(data["target"]) else T.InterpolationMode.BILINEAR
+            # Ensure target has a channel dim for resize if it's 2D (H, W) -> (1, H, W)
+            is_2d = data["target"].ndim == 2
+            target_to_resize = data["target"].unsqueeze(0) if is_2d else data["target"]
+
+            # Apply antialias only if using bilinear interpolation for the target
+            target_antialias = self.antialias if target_interpolation == T.InterpolationMode.BILINEAR else None
+
+            resized_target = TF.resize(
+                target_to_resize,
+                size=self.size,
+                interpolation=target_interpolation, # Use determined interpolation
+                antialias=target_antialias
+            )
+            # Remove channel dim if we added it
+            data["target"] = resized_target.squeeze(0) if is_2d else resized_target
 
         return data
 
@@ -752,20 +774,21 @@ class Resize(BasePreprocessor):
 class ResizeToEncoder(Resize):
     def __init__(
         self,
-        interpolation=T.InterpolationMode.BILINEAR,
+        interpolation=T.InterpolationMode.BILINEAR, # Default can be enum or string now
         antialias: Optional[bool] = True,
-        resize_target: bool = False,
+        resize_target: bool = False, # Keeping default as False
         **meta,
     ) -> None:
         """Initialize the ResizeToEncoder preprocessor.
         Args:
-        interpolation (InterpolationMode): Desired interpolation enum defined by
-            :class:`torchvision.transforms.InterpolationMode`.
+        interpolation (InterpolationMode or str): Desired interpolation enum defined by
+            :class:`torchvision.transforms.InterpolationMode` or its string name.
         antialias (bool, optional): Whether to apply antialiasing.
         resize_target (bool, optional): Whether to resize the target
         meta: statistics/info of the input data and target encoder
         """
         size = meta["encoder_input_size"]
+        # Call the updated parent __init__ which now handles string/int/enum interpolation
         super().__init__(size, interpolation, antialias, resize_target, **meta)
 
 
@@ -940,6 +963,33 @@ class RandomResizedCropToEncoder(RandomResizedCrop):
         super().__init__(
             size, scale, ratio, interpolation, antialias, resize_target, **meta
         )
+
+
+
+class AddTemporalDim(BasePreprocessor):
+    """Adds a temporal dimension (T=1) to image tensors if they are 3D (C, H, W)."""
+
+    def __init__(self, **meta) -> None:
+        """Initialize the AddTemporalDim preprocessor."""
+        super().__init__()
+        # No specific initialization needed from meta for this preprocessor
+
+    def __call__(
+        self, data: dict[str, torch.Tensor | dict[str, torch.Tensor]]
+    ) -> dict[str, torch.Tensor | dict[str, torch.Tensor]]:
+        """Adds the temporal dimension."""
+        for k, v in data["image"].items():
+            if v.ndim == 3:  # Check if it's (C, H, W)
+                data["image"][k] = v.unsqueeze(1)  # Add T=1 -> (C, 1, H, W)
+            elif v.ndim != 4: # Log warning if it's not 3D or 4D
+                 print(f"Warning: Input tensor for modality '{k}' in AddTemporalDim has unexpected dimensions {v.ndim}. Expected 3 or 4.") # Use logger in production
+        return data
+
+    def update_meta(self, meta):
+        """Update meta to indicate data is now multi-temporal."""
+        meta["multi_temporal"] = True # Mark that the temporal dimension exists
+        # Other meta like data_img_size remain unchanged by this step
+        return meta
 
 
 def _setup_size(size, error_msg):

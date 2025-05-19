@@ -1,0 +1,37 @@
+# Target class for instantiation
+_target_: pangaea.datasets.agbd.AGBDDataset
+
+# --- Pangaea Standard Fields ---
+dataset_name: AGBD_HDF5 # Name for logging/identification
+root_path: /scratch/reimannj/pangaea_agbd_integration_final/data/agbd # IMPORTANT: Verify this path contains HDF5 and PKL files
+img_size: 25 # Should match the internal HDF5 patch size (25x25)
+num_classes: 1 # Regression target
+classes: ['biomass']
+ignore_index: -1 # Likely unused for MSE loss
+# modalities: ["optical"] # We are only loading optical
+bands:
+  optical: ['B02', 'B03', 'B04', 'B8A', 'B11', 'B12'] # The 6 bands Prithvi expects
+multi_temporal: False
+multi_modal: False
+distribution: [1.0] # Placeholder for regression
+
+# --- AGBD Specific Parameters (used by AGBDDataset.__init__) ---
+years: [2019, 2020] # Years to load data from
+version: 4 # Version identifier used in filenames (e.g., -v4_)
+norm_strat: 'pct' # Normalization strategy ('pct' or 'min_max') used internally by the dataset class
+debug: False # Set to True to load fewer HDF5 files for faster testing
+
+# --- Base Class Parameters (Mostly placeholders as normalization/download handled internally) ---
+download_url: None # Not used, data must be pre-downloaded
+auto_download: False # Not used
+# Data stats below are placeholders; normalization is done *inside* AGBDDataset using the .pkl file
+# Pangaea's preprocessor might still read these, depending on its configuration.
+# Using [0.0-1.0] range assumes 'pct' or 'min_max' normalization happens in the dataset class.
+data_mean:
+  optical: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5] # Placeholder mean for normalized data
+data_std:
+  optical: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5] # Placeholder std for normalized data
+data_min:
+  optical: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0] # Min after normalization
+data_max:
+  optical: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0] # Max after normalization

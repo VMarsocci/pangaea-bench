@@ -1,0 +1,41 @@
+# Preprocessing for AGBD Regression: Resize -> Add Temporal Dim -> Filter -> Normalize -> Pad
+
+train:
+    _target_: pangaea.engine.data_preprocessor.Preprocessor
+    preprocessor_cfg:
+        # 1. Resize from dataset's original size (15x15) to encoder's input size (e.g., 224x224)
+        - _target_: pangaea.engine.data_preprocessor.ResizeToEncoder
+          interpolation: 'bilinear' # Use bilinear for resizing image data
+          resize_target: False      # Do not resize the scalar target
+        # 2. Add temporal dimension (T=1)
+        - _target_: pangaea.engine.data_preprocessor.AddTemporalDim
+        # 3. Filter bands (already handled by AGBDDataset selecting Prithvi bands)
+        - _target_: pangaea.engine.data_preprocessor.BandFilter
+        # 4. Normalize (using MinMax for regression as in reg_default)
+        - _target_: pangaea.engine.data_preprocessor.NormalizeMinMax
+        # 5. Pad bands if necessary (e.g., if encoder expects more bands than provided)
+        - _target_: pangaea.engine.data_preprocessor.BandPadding
+
+val:
+    _target_: pangaea.engine.data_preprocessor.Preprocessor
+    preprocessor_cfg:
+        # Apply the same sequence for validation
+        - _target_: pangaea.engine.data_preprocessor.ResizeToEncoder
+          interpolation: 'bilinear'
+          resize_target: False
+        - _target_: pangaea.engine.data_preprocessor.AddTemporalDim
+        - _target_: pangaea.engine.data_preprocessor.BandFilter
+        - _target_: pangaea.engine.data_preprocessor.NormalizeMinMax
+        - _target_: pangaea.engine.data_preprocessor.BandPadding
+
+test:
+    _target_: pangaea.engine.data_preprocessor.Preprocessor
+    preprocessor_cfg:
+        # Apply the same sequence for testing
+        - _target_: pangaea.engine.data_preprocessor.ResizeToEncoder
+          interpolation: 'bilinear'
+          resize_target: False
+        - _target_: pangaea.engine.data_preprocessor.AddTemporalDim
+        - _target_: pangaea.engine.data_preprocessor.BandFilter
+        - _target_: pangaea.engine.data_preprocessor.NormalizeMinMax
+        - _target_: pangaea.engine.data_preprocessor.BandPadding
