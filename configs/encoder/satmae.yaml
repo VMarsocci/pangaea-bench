@@ -1,0 +1,42 @@
+#CHOSEN CONFIGURATION BASED ON WEBPAGES MODEL "mae_vit_large_patch16_dec512d8b"; Reason: similar parameters to ScaleMAE & the one used in the Paper in SatMAE & Large seems to perform slightly better
+
+_target_: pangaea.encoders.satmae_encoder.SatMAE
+encoder_weights: ./pretrained_models/satmae_weights.pth
+download_url: https://zenodo.org/record/7338613/files/pretrain-vit-large-e199.pth
+
+input_size: 224   # corresponds to "img_size" => # From Config "mae_vit_large_patch16_dec512d8b(**kwargs)" on SatMAE GitHub (inferred by looking at the code from SCaleMAE "img_size=input_size")
+in_chans: 3       # Number of groups -> see Code in SatMAE GitHub => channel_groups=((0, 1, 2, 6), (3, 4, 5, 7), (8, 9))
+embed_dim: 1024   # From Config "mae_vit_large_patch16_dec512d8b(**kwargs)" on SatMAE GitHub
+patch_size: 16    # DEFAULT value for the model on SatMAE GitHub
+num_heads: 16     # From Config "mae_vit_large_patch16_dec512d8b(**kwargs)" on SatMAE GitHub
+depth: 24         # From Config "mae_vit_large_patch16_dec512d8b(**kwargs)" on SatMAE GitHub
+mlp_ratio: 4.     # From Config "mae_vit_large_patch16_dec512d8b(**kwargs)" on SatMAE GitHub
+
+# Further variables from Config "mae_vit_large_patch16_dec512d8b(**kwargs)" on SatMAE GitHub: (excluded all decoder related variables)
+channel_embed: 256
+qkv_bias: True
+
+input_bands:      # channel_groups=((0, 1, 2, 6), (3, 4, 5, 7), (8, 9)); ??? EXPLAIN HOW NUMBERS GO WITH THE NAMES BELOW?
+  optical:
+    - B2
+    - B3
+    - B4
+    - B8
+    - B5
+    - B6
+    - B7
+    - B8A
+    - B11
+    - B12
+
+output_layers:    # ??? Default ones accroding to PANGAEA GitHub. 3,5,7,11
+  - 7
+  - 11
+  - 15
+  - 23
+
+
+output_dim: 3072  # its embed_dim * in_chans ; dimension of the embedding output by the encoder, accepted by the decoder (src: base.py)
+pyramid_output: True
+
+# the resolution of each output that goes off each output layer needs to match the corresponding rescale ????????
