@@ -4,7 +4,7 @@
   <span>
     PANGAEA: A Global and Inclusive Benchmark for<br>Geospatial Foundation Models
   </span>
-  <img src=".github/logo.jpg" alt="PANGAEA logo" style="height: 3.5em; margin-left: 1em;">
+  <img src=".github/logo.jpg" alt="PANGAEA logo" width="20%">
 </h1>
 
 📢 **News**
