@@ -4,7 +4,7 @@
   <h1 style="margin: 0;">
     PANGAEA: A Global and Inclusive Benchmark for Geospatial Foundation Models
   </h1>
-  <img src=".github/logo.jpg" alt="PANGAEA logo" style="width: 10%; margin-left: 1em;">
+  <img src=".github/logo.jpg" alt="PANGAEA logo" style="width: 10%;">
 </div>
 
 📢 **News**
