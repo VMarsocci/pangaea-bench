@@ -1,6 +1,11 @@
 [![Tests](https://github.com/yurujaja/geofm-bench/actions/workflows/python-test.yml/badge.svg)](https://github.com/yurujaja/geofm-bench/actions/workflows/python-test.yml)
 
-# PANGAEA: A Global and Inclusive Benchmark for Geospatial Foundation Models
+<h1 align="left" style="display: flex; justify-content: space-between; align-items: center;">
+  <span>
+    PANGAEA: A Global and Inclusive Benchmark for<br>Geospatial Foundation Models
+  </span>
+  <img src=".github/logo.jpg" alt="PANGAEA logo" style="height: 3.5em; margin-left: 1em;">
+</h1>
 
 📢 **News**
  - [23/04/2025] we pushed a new version of the code, fixing different bugs (e.g. commands are working for all the datasets now, metric computation with ignore_index is fixed, etc...). In the next month, we will provide: all downloadable datasets and models, downloadable stratified subsamples for all the datasets, classification. Stay tuned!
