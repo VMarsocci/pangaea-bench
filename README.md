@@ -1,13 +1,13 @@
 [![Tests](https://github.com/yurujaja/geofm-bench/actions/workflows/python-test.yml/badge.svg)](https://github.com/yurujaja/geofm-bench/actions/workflows/python-test.yml)
 
-<table width="100%">
+<table width="100%" cellspacing="0" cellpadding="0" style="border: none;">
 <tr>
-<td align="left">
-  <h1>
+<td align="left" style="border: none;">
+  <h1 style="margin: 0;">
     PANGAEA: A Global and Inclusive Benchmark for Geospatial Foundation Models
   </h1>
 </td>
-<td align="right" width="15%">
+<td align="right" width="15%" style="border: none;">
   <img src=".github/logo.jpg" alt="PANGAEA logo">
 </td>
 </tr>
