@@ -1,6 +1,6 @@
 [![Tests](https://github.com/yurujaja/geofm-bench/actions/workflows/python-test.yml/badge.svg)](https://github.com/yurujaja/geofm-bench/actions/workflows/python-test.yml)
 
-<table width="100%" cellspacing="0" cellpadding="0" style="border: none;">
+<table width="100%" cellspacing="0" cellpadding="0" border="0" style="border: none; border-collapse: collapse;">
 <tr>
 <td align="left" style="border: none;">
   <h1 style="margin: 0;">
@@ -8,7 +8,7 @@
   </h1>
 </td>
 <td align="right" width="15%" style="border: none;">
-  <img src=".github/logo.jpg" alt="PANGAEA logo">
+  <img src=".github/logo.jpg" alt="PANGAEA logo" style="border: none;">
 </td>
 </tr>
 </table>
