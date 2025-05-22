@@ -1,17 +1,38 @@
 [![Tests](https://github.com/yurujaja/geofm-bench/actions/workflows/python-test.yml/badge.svg)](https://github.com/yurujaja/geofm-bench/actions/workflows/python-test.yml)
+<p align="center">
+  <img src=".github/pangaea-banner.png" alt="PANGAEA" width="480"/>
+</p>
 
-<table width="100%" cellspacing="0" cellpadding="0" border="0" style="border: none; border-collapse: collapse;">
-<tr>
-<td align="left" style="border: none;">
-  <h1 style="margin: 0;">
-    PANGAEA: A Global and Inclusive Benchmark for Geospatial Foundation Models
-  </h1>
-</td>
-<td align="right" width="15%" style="border: none;">
-  <img src=".github/logo.jpg" alt="PANGAEA logo" style="border: none;">
-</td>
-</tr>
-</table>
+<p align="center">
+  <a href="https://arxiv.org/abs/2312.03048">
+    <img
+      src="https://badgen.net/badge/paper/arXiv/red"
+      alt="PANGAEA Paper"
+    />
+    </a>
+    <a href="https://www.eotdl.com/datasets">
+      <img
+         src="https://badgen.net/badge/Pangaea/Datasets/purple"
+         alt="PANGAEA Datasets"
+      />
+   </a>
+   <a href="https://www.eotdl.com/models">
+      <img
+         src="https://badgen.net/badge/Pangaea/Models/green"
+         alt="PANGAEA Models"
+      />
+   </a>
+   <a href="https://philabchallenges.vercel.app/pangaea/leaderboard">
+      <img
+         src="https://badgen.net/badge/Pangaea/Leaderboard/orange"
+         alt="PANGAEA Models"
+      />
+   </a>
+</p>
+
+
+# PANGAEA: A Global and Inclusive Benchmark for Geospatial Foundation Models
+
 
 📢 **News**
  - [23/04/2025] we pushed a new version of the code, fixing different bugs (e.g. commands are working for all the datasets now, metric computation with ignore_index is fixed, etc...). In the next month, we will provide: all downloadable datasets and models, downloadable stratified subsamples for all the datasets, classification. Stay tuned!
