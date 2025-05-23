@@ -6,7 +6,14 @@ from pathlib import Path
 from pangaea.datasets.base import RawGeoFMDataset
 from pangaea.datasets.utils import decompress_zip_with_progress
 from huggingface_hub import HfApi, hf_hub_download
-import geobench
+import subprocess
+import sys
+try:
+    import geobench
+except ImportError:
+    print("geobench not found. Installing via pip...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-deps", "geobench"])
+    import geobench
 
 
 class mBrickKiln(RawGeoFMDataset):

@@ -8,7 +8,14 @@ import geobench
 from pathlib import Path
 from tqdm import tqdm
 from huggingface_hub import HfApi, hf_hub_download
-from torchvision import transforms
+import subprocess
+import sys
+try:
+    import geobench
+except ImportError:
+    print("geobench not found. Installing via pip...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-deps", "geobench"])
+    import geobench
 
 
 class mBigEarthNet(RawGeoFMDataset):

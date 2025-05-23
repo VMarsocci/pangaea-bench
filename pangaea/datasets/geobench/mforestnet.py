@@ -6,8 +6,15 @@ from pathlib import Path
 from pangaea.datasets.utils import decompress_zip_with_progress
 from huggingface_hub import HfApi, hf_hub_download
 from pangaea.datasets.base import RawGeoFMDataset
-import geobench
-from torchvision import transforms
+import subprocess
+import sys
+try:
+    import geobench
+except ImportError:
+    print("geobench not found. Installing via pip...")
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-deps", "geobench"])
+    import geobench
+    
 
 class mForestnet(RawGeoFMDataset):
     def __init__(
