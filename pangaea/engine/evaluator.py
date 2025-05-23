@@ -298,7 +298,7 @@ class SegEvaluator(Evaluator):
         t = time.time()
 
         if model_ckpt_path is not None:
-            model_dict = torch.load(model_ckpt_path, map_location=self.device)
+            model_dict = torch.load(model_ckpt_path, map_location=self.device, weights_only=False)
             model_name = os.path.basename(model_ckpt_path).split(".")[0]
             if "model" in model_dict:
                 model.module.load_state_dict(model_dict["model"])
@@ -366,25 +366,28 @@ class SegEvaluator(Evaluator):
         f1 = 2 * (precision * recall) / (precision + recall + 1e-6)
 
         # Calculate mean IoU, mean F1-score, and mean Accuracy
-        miou = iou.mean().item()
-        mf1 = f1.mean().item()
+        valid_classes = [i for i in range(self.num_classes) if i != self.ignore_index]
+            
+        miou = iou[valid_classes].mean().item() if valid_classes else 0.0
+        mf1 = f1[valid_classes].mean().item() if valid_classes else 0.0
         macc = (intersection.sum() / (confusion_matrix.sum() + 1e-6)).item() * 100
 
         # Convert metrics to CPU and to Python scalars
-        iou = iou.cpu()
-        f1 = f1.cpu()
-        precision = precision.cpu()
-        recall = recall.cpu()
+        iou = [iou[i].item() for i in valid_classes]
+        f1 = [f1[i].item() for i in valid_classes]
+        precision = [precision[i].item() for i in valid_classes]
+        recall = [recall[i].item() for i in valid_classes]
+        self.classes = [self.classes[i] for i in valid_classes]
 
         # Prepare the metrics dictionary
         metrics = {
-            "IoU": [iou[i].item() for i in range(self.num_classes)],
+            "IoU": iou,
             "mIoU": miou,
-            "F1": [f1[i].item() for i in range(self.num_classes)],
+            "F1": f1,
             "mF1": mf1,
             "mAcc": macc,
-            "Precision": [precision[i].item() for i in range(self.num_classes)],
-            "Recall": [recall[i].item() for i in range(self.num_classes)],
+            "Precision": precision,
+            "Recall": recall,
         }
 
         return metrics
@@ -409,8 +412,8 @@ class SegEvaluator(Evaluator):
         iou_str = format_metric("IoU", metrics["IoU"], metrics["mIoU"])
         f1_str = format_metric("F1-score", metrics["F1"], metrics["mF1"])
 
-        precision_mean = torch.tensor(metrics["Precision"]).mean().item()
-        recall_mean = torch.tensor(metrics["Recall"]).mean().item()
+        precision_mean = sum(metrics["Precision"]) / len(metrics["Precision"]) if metrics["Precision"] else 0.0
+        recall_mean = sum(metrics["Recall"]) / len(metrics["Recall"]) if metrics["Recall"] else 0.0
 
         precision_str = format_metric("Precision", metrics["Precision"], precision_mean)
         recall_str = format_metric("Recall", metrics["Recall"], recall_mean)

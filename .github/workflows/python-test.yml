@@ -5,12 +5,12 @@ name: Tests
 
 on:
   push:
-    branches: [ "main", "feature/test" ]
+    branches: ["main", "feature/test"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 env:
-  CACHE_NUMBER: 0  # increase to reset cache manually
+  CACHE_NUMBER: 0 # increase to reset cache manually
 
 permissions:
   contents: read
@@ -24,44 +24,43 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Set up Python 3.10
-      uses: actions/setup-python@v5
-      with:
-        python-version: "3.10"
+      - uses: actions/checkout@v4
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
 
-    - name: Lint with flake8
-      run: |
-        pip install flake8
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
+      - name: Lint with flake8
+        run: |
+          pip install flake8
+          # stop the build if there are Python syntax errors or undefined names
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
+          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
 
-    - name: Create environment with mamba
-      uses: conda-incubator/setup-miniconda@v3
-      with:
-        mamba-version: "1.5.10"
-        channels: pytorch, nvidia, conda-forge
-        auto-activate-base: false
-        activate-environment: gfm-bench8
+      - name: Create environment with mamba
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          mamba-version: "*"
+          channels: pytorch, nvidia, conda-forge
+          activate-environment: gfm-bench8
 
-    - name: Set cache date
-      run: echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
-    - uses: actions/cache@v4
-      with:
-        path: /usr/share/miniconda/envs/gfm-bench8
-        key: conda-${{ hashFiles('environment.yaml') }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
-      id: cache
+      - name: Set cache date
+        run: echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
+      - uses: actions/cache@v4
+        with:
+          path: /usr/share/miniconda/envs/gfm-bench8
+          key: conda-${{ hashFiles('environment.yaml') }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
+        id: cache
 
-    - name: Update environment
-      run: mamba env update -n gfm-bench8 -f environment.yaml
-      if: steps.cache.outputs.cache-hit != 'true'
-      
-    - name: Check solution
-      run: |
-        mamba env export
+      - name: Update environment
+        run: mamba env update -n gfm-bench8 -f environment.yaml
+        if: steps.cache.outputs.cache-hit != 'true'
 
-    - name: Test with pytest
-      run: |
-        python -m unittest tests.test_imports
+      - name: Check solution
+        run: |
+          mamba env export
+
+      - name: Test with pytest
+        run: |
+          python -m unittest tests.test_imports

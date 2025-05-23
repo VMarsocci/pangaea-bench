@@ -2,6 +2,8 @@
 
 This document provides a detailed overview of the datasets used in this repository. For each dataset, you will find instructions on how to prepare the data, along with command-line examples for running models. 
 
+*DISCLAIMER*: please consider that we provide the detailed overview for the datasets included in the original repo. Community-contributed datasets may not come with pre-defined command-line examples in this repository. Feel free to adapt the existing examples based on your use case. 
+
 ### HLSBurnScars
 
 - The code supports automatic downloading of the dataset into `./data` folder. 
@@ -51,7 +53,7 @@ This document provides a detailed overview of the datasets used in this reposito
    decoder=seg_upernet_mt_ltae \
    preprocessing=seg_resize \
    criterion=cross_entropy \
-   task.evaluator.inference_mode=whole \  
+   task.evaluator.inference_mode=whole \
    task=segmentation
   ```
   
@@ -66,7 +68,7 @@ This document provides a detailed overview of the datasets used in this reposito
    --config-name=train \
    dataset=sen1floods11 \
    encoder=remoteclip \
-   decoder=seg_upernet\
+   decoder=seg_upernet \
    preprocessing=seg_default \
    criterion=cross_entropy \
    task=segmentation
@@ -119,7 +121,7 @@ This document provides a detailed overview of the datasets used in this reposito
   ```
   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
    --config-name=train \
-   dataset=dynamicearthnet \
+   dataset=dynamicen \
    encoder=remoteclip \
    decoder=seg_upernet_mt_ltae \
    preprocessing=seg_default \
@@ -158,7 +160,7 @@ This document provides a detailed overview of the datasets used in this reposito
    --config-name=train \
    dataset=spacenet7 \
    encoder=remoteclip \
-   decoder=seg_upernet\
+   decoder=seg_upernet \
    preprocessing=seg_default \
    criterion=dice \
    task=segmentation
@@ -169,7 +171,7 @@ This document provides a detailed overview of the datasets used in this reposito
    --config-name=train \
    dataset=spacenet7cd \
    encoder=remoteclip \
-   decoder=seg_siamupernet_conc\
+   decoder=seg_siamupernet_conc \
    preprocessing=seg_default \
    criterion=dice \
    task=change_detection
@@ -188,8 +190,10 @@ This document provides a detailed overview of the datasets used in this reposito
    encoder=remoteclip \
    decoder=seg_upernet \
    preprocessing=seg_default \
-   criterion=cross_entropy \
-   task=segmentation
+   criterion=dice \
+   task=segmentation \
+   data_replicate=2 \
+   task.trainer.best_metric_key=IoU
   ```
   
 ### BioMassters
@@ -217,3 +221,16 @@ This document provides a detailed overview of the datasets used in this reposito
    task=regression
    ```
   In this case, you can specify in the `temp` parameter which frame you want to use.
+
+**Note**: The following datasets are **community-contributed** and are not part of the original benchmark repository. 
+### Potsdam
+   ```
+   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=potsdam \
+   encoder=dofa \
+   decoder=seg_upernet \
+   preprocessing=seg_default \
+   criterion=cross_entropy \
+   task=segmentation
+  ```
