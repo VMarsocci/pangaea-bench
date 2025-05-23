@@ -1,6 +1,7 @@
 import random
 from tqdm import tqdm
 import numpy as np
+from collections import defaultdict
 from pangaea.datasets.base import GeoFMDataset
 from pangaea.datasets.base import GeoFMSubset
 
@@ -59,6 +60,32 @@ def bin_regression_distributions(regression_distributions, num_bins=3, logger=No
         np.linspace(regression_distributions.min(), regression_distributions.max(), num_bins + 1)
     ) - 1
     return binned_distributions
+
+def balance_cls_indices(
+         dataset:GeoFMDataset|GeoFMSubset, 
+         strategy, 
+         label_fraction=1.0, 
+         logger=None):
+     
+     indices_by_class = defaultdict(list)
+     
+     n_samples = len(dataset)
+     for idx in range(n_samples):
+         label = dataset[idx]['target']
+         indices_by_class[label].append(idx)
+         
+     selected_idx = []
+     # For each class, sample the same fraction of indices
+     if strategy == "stratified":
+         for label, indices in indices_by_class.items():
+             num_to_select = max(1, int(len(indices) * label_fraction))
+             selected_idx.extend(random.sample(indices, num_to_select))
+     else:
+         raise NotImplementedError
+     
+     other_idx = list(set(range(len(dataset))) - set(selected_idx))
+     
+     return selected_idx, other_idx
 
 
 def balance_seg_indices(
@@ -211,6 +238,11 @@ def get_subset_indices(dataset: GeoFMDataset,
             range(n_samples), int(n_samples * label_fraction)
         )
         return indices
+    
+    elif task == "classification" or task == "classification_multi_label":
+         indices, _ = balance_cls_indices(
+             dataset, strategy=strategy, label_fraction=label_fraction, logger=logger
+         )
     
     elif task == "segmentation" or task == "change_detection":
         indices, _ = balance_seg_indices(
