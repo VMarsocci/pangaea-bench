@@ -1,0 +1,42 @@
+_target_: pangaea.encoders.terramind_encoder.terramind_v1_large
+encoder_weights: /home/vmarsocci/pangaea-bench/pretrained_models/TerraMind_v1_large.pt
+download_url: #https://drive.google.com/uc?id=1CseO5vvMReGlAulm5o4ZgbjUgj8VlAH7&export=download&confirm=yes
+# ckpt_path: /home/vmarsocci/pangaea-bench/pretrained_models/TerraMind_v1_large.pt
+
+# dim: 768
+input_size: 224
+patch_size: 16
+merge_method: "mean"
+# in_chans: 13
+# num_heads: 6
+# depth: 12
+# mlp_ratio: 4
+# multi_temporal: False
+modalities: ["S2L2A", "S1GRD"]
+
+input_bands:
+  optical:
+    - B1
+    - B2
+    - B3
+    - B4
+    - B5
+    - B6
+    - B7
+    - B8
+    - B8A
+    # - B9
+    - B10
+    - B11
+    - B12
+  sar:
+    - VV
+    - VH
+
+output_layers:
+  - 7
+  - 11
+  - 15
+  - 23
+
+output_dim: 1024
