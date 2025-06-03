@@ -1,0 +1,58 @@
+# Configuration for TerraMindAllEncoder with TiM (Temporal-invariant Mapping) models
+# Optimized for SINGLE TEMPORAL datasets
+# This configuration uses TiM models like "terramind_v1_base_tim" for single temporal data
+# while still benefiting from temporal-invariant pre-training for robust semantic features
+
+_target_: pangaea.encoders.terramind_all_encoder.TerraMindAllEncoder
+
+# --- Parameters from Encoder base class ---
+encoder_weights: "terramind_tim_single_temporal_pretrained"
+download_url: null
+
+input_size: 224                 # Standard input size for TiM models
+embed_dim: 768                  # Base model typically uses 768-dim embeddings (adjust for _large variants to 1024)
+
+# Multi-layer feature extraction for rich hierarchical features
+output_layers: [3, 5, 7, 11]  # Extract features from multiple transformer layers
+output_dim: 768                 # Feature dimension (should match embed_dim for consistent layers)
+
+# --- Encoder behavior flags for SINGLE TEMPORAL ---
+multi_temporal: False           # Single temporal data
+multi_temporal_output: False    # No temporal fusion needed for single temporal
+pyramid_output: False           # Vision transformers don't typically use pyramid outputs
+
+# --- Specific TerraMind TiM model parameters ---
+terramind_model_name: "terramind_v1_base_tim"  # TiM model variant
+
+# For TiM models, modalities should be Pangea-style keys that will be mapped internally
+# The encoder will set modalities=None for TiM models during build
+terramind_modalities: ["S2L1C"]  # TerraMind modality keys for terratorch build
+
+# Pangea modalities are the keys expected in input_bands and forward method input
+pangaea_modalities: ["optical"]  # Pangea modality keys for input_bands
+
+# TiM-specific modalities for temporal-invariant mapping tasks
+# These define the auxiliary/target tasks the TiM model was trained on
+# ESSENTIAL for TiM functionality - provides temporal-invariant semantic features
+terramind_tim_modalities: ["LULC"]  # Land Use Land Cover as temporal-invariant target
+
+# Load pretrained TiM weights
+terramind_pretrained: True
+
+# --- Input Bands Configuration ---
+# Standard Sentinel-2 L2A bands for optical data
+input_bands:
+  optical:
+    - B1
+    - B2
+    - B3
+    - B4
+    - B5
+    - B6
+    - B7
+    - B8
+    - B8A
+    - B9
+    - B10
+    - B11
+    - B12

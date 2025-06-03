@@ -1,0 +1,80 @@
+# Example configuration for TerraMindAllEncoder
+# This configuration demonstrates how to use the TerraMindAllEncoder,
+# which wraps a model loaded from the terratorch.registry.
+
+_target_: pangaea.encoders.terramind_all_encoder.TerraMindAllEncoder
+
+# --- Parameters from Encoder base class ---
+# `encoder_weights` is used by the base class for downloading/logging.
+# If `terramind_pretrained: True`, this is mostly descriptive as terratorch handles loading.
+# If `terramind_pretrained: False` and you want to load a specific local file via base class logic,
+# provide the path here and ensure `download_url` is null or points to the file if it needs downloading.
+# The `TerraMindAllEncoder.load_encoder_weights` might need adjustment for manual loading if not using `pretrained=True`.
+encoder_weights: "terramind_model_loaded_via_registry_pretrained" # Descriptive name or path to weights
+download_url: null # Set if weights need to be downloaded and not handled by terratorch
+
+input_size: 224                 # Input image size
+embed_dim: 1024                 # Main feature dimension of the underlying TerraMind model.
+                                # Verify this for the chosen `terramind_model_name`.
+                                # Example value inspired by terramind_optical_v1.yaml's output_dim.
+
+# Specify which layers to output features from.
+# Example: [-1] for the last layer, or a list of layer indices.
+output_layers: [7, 11, 15, 23]  # Example from terramind_optical_v1.yaml
+
+# Dimension(s) of the output features from `output_layers`.
+# Can be an int (if all output layers have the same dim) or a list of ints.
+output_dim: 1024                # Example from terramind_optical_v1.yaml
+
+# --- Encoder behavior flags ---
+multi_temporal: False           # Set to True if the model and data are multi-temporal
+multi_temporal_output: False    # Set to True if the output features should be multi-temporal
+pyramid_output: False           # Set to True if the model provides pyramid features and you want to use them
+
+# --- Specific TerraMind model parameters for BACKBONE_REGISTRY.build ---
+# Choose the model name from terratorch.registry
+terramind_model_name: "terramind_v1_large" # Example: use "terramind_v1_base_tim" or other available models
+                                               # This should be a model compatible with TIM if tim_modalities are used.
+
+# List of input modalities the TerraMind model expects.
+# Keys in `input_bands` MUST match these.
+# These should be Pangea-compatible keys like "optical", "sar".
+terramind_modalities: ["optical"] # Changed from ["S2L2A"]
+
+# List of TIM modalities for the TerraMind model (if applicable).
+terramind_tim_modalities: #["LULC"] # Example, adjust if your model uses different/no TIM modalities
+
+# Whether to load pretrained weights via terratorch.registry.
+terramind_pretrained: True
+
+# --- Input Bands Configuration ---
+# User MUST provide this. Keys must match the strings in `terramind_modalities`.
+# The list of bands should correspond to the actual bands in your dataset for that modality.
+input_bands:
+  optical: # Changed from S2L2A. Ensure bands below are correct for S2L2A data.
+    - B1
+    - B2
+    - B3
+    - B4
+    - B5
+    - B6
+    - B7
+    - B8
+    - B8A
+    # - B9 # Example: B9 is often excluded
+    - B10 # Note: B10 is Cirrus, often used for cloud masking, not direct features. Verify usage.
+    - B11
+    - B12
+  # Example for a multi-modal setup (if terramind_modalities included S1GRD):
+  # S1GRD:
+  #   - "VV"
+  #   - "VH"
+
+# Notes:
+# - The `embed_dim` in `TerraMindAllEncoder` is passed to the base `Encoder` class.
+#   It should ideally match the primary feature dimension of the loaded `terramind_model_name`.
+# - If `output_layers` specifies multiple layers, and `output_dim` is an integer,
+#   the base `Encoder` class will assume all specified output layers produce features of this dimension.
+#   If they differ, `output_dim` should be a list of integers matching `output_layers`.
+# - The `forward` method in `TerraMindAllEncoder` might need further customization if the
+#   wrapped TerraMind model has a very specific API for feature extraction from multiple layers.
