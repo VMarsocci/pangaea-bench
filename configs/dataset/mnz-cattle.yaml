@@ -1,0 +1,43 @@
+_target_: pangaea.datasets.geobench.mnz-cattle.mNzCattle
+dataset_name: mNzCattle
+root_path: ${oc.env:GEO_BENCH_DIR}/segmentation_v1.0/m-nz-cattle
+download_url: "recursix/geo-bench-1.0"
+auto_download: True
+
+img_size: 500
+multi_temporal: False
+multi_modal: False
+
+# classes
+ignore_index: -1
+num_classes: 2
+classes: 
+  - No cattle
+  - Cattle
+distribution:
+  - 0
+  - 0
+
+# data stats
+bands:
+  optical:
+    - B4
+    - B3
+    - B2
+
+data_mean:
+  optical:
+    - 126.31354389312978
+    - 130.09102671755724
+    - 106.51769083969465
+
+data_std:
+  optical:
+    - 23.38495539231075
+    - 19.92435830412983
+    - 18.991624007810348
+
+data_min:
+  optical: [0.0, 0.0, 0.0]
+data_max:
+  optical: [255.0, 255.0, 255.0]

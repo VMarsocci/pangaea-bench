@@ -1,0 +1,77 @@
+_target_: pangaea.datasets.geobench.msa-crop-type.mSACropType
+dataset_name: mSACropType
+root_path: ${oc.env:GEO_BENCH_DIR}/segmentation_v1.0/m-SA-crop-type
+download_url: "recursix/geo-bench-1.0"
+auto_download: True
+
+img_size: 256
+multi_temporal: False
+multi_modal: False
+
+# classes
+ignore_index: -1
+num_classes: 10
+classes: 
+  - 'no data'
+  - 'Lucerne/Medics'
+  - 'Planted pastures (perennial)'
+  - 'Fallow'
+  - 'Wine grapes'
+  - 'Weeds'
+  - 'Small grain grazing'
+  - 'Wheat'
+  - 'Canola'
+  - 'Rooibos'
+distribution:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+
+# data stats
+bands:
+  optical:
+    - B1
+    - B2
+    - B3
+    - B4
+    - B5
+    - B6
+    - B7
+    - B8
+    - B8A
+    - B9
+    - B11
+    - B12
+
+data_mean:
+  optical: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+data_std:
+  optical: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+data_min:
+  optical: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+data_max:
+  optical: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+
+# data_mean:
+#   optical:
+#     - 0.0
+#     - 0.0
+#     - 0.0
+
+# data_std:
+#   optical:
+#     - 0.0
+#     - 0.0
+#     - 0.0
+
+# data_min:
+#   optical: [0.0000, 0.0, 0.0]
+# data_max:
+#   optical: [0.0000, 0.0, 0.0]

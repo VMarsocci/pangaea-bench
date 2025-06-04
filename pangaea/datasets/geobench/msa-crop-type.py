@@ -2,10 +2,10 @@
 import numpy as np
 import torch
 import os
-from pathlib import Path
-from pangaea.datasets.utils import decompress_zip_with_progress
-from huggingface_hub import HfApi, hf_hub_download
 from pangaea.datasets.base import RawGeoFMDataset
+from pathlib import Path
+from huggingface_hub import HfApi, hf_hub_download
+from pangaea.datasets.utils import decompress_zip_with_progress
 import subprocess
 import sys
 try:
@@ -14,9 +14,9 @@ except ImportError:
     print("geobench not found. Installing via pip...")
     subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-deps", "geobench"])
     import geobench
-    
 
-class mForestnet(RawGeoFMDataset):
+
+class mSACropType(RawGeoFMDataset):
     def __init__(
         self,
         split: str,
@@ -37,7 +37,7 @@ class mForestnet(RawGeoFMDataset):
         download_url: str,
         auto_download: bool,
     ):
-        """Initialize the mForestNet dataset.
+        """Initialize the m-SA-Crop-Type     dataset.
             Link: https://github.com/ServiceNow/geo-bench
 
         Args:
@@ -67,7 +67,7 @@ class mForestnet(RawGeoFMDataset):
             download_url (str): url to download the dataset.
             auto_download (bool): whether to download the dataset automatically.
         """
-        super(mForestnet, self).__init__(
+        super(mSACropType, self).__init__(
             split=split,
             dataset_name=dataset_name,
             multi_modal=multi_modal,
@@ -100,7 +100,8 @@ class mForestnet(RawGeoFMDataset):
         self.auto_download = auto_download
 
         self.root_path = root_path
-        self.split = split 
+        self.split = split
+        
         split_mapping = {'train': 'train', 'val': 'valid', 'test': 'test'}
         
         task = geobench.load_task_specs(self.root_path)
@@ -114,36 +115,40 @@ class mForestnet(RawGeoFMDataset):
         # for band in sample.bands:
         #     print(f"  {band.band_info.name}: {band.data.shape}")
         all_band_names = (
-        "04",
-        "03",
-        "02",
-        "05",
-        "06",
-        "07",
+            "01",
+            "02",
+            "03",
+            "04",
+            "05",
+            "06",
+            "07",
+            "08",
+            "08A",
+            "09",
+            "11",
+            "12",
         )
         rgb_bands = ("04", "03", "02")
         BAND_SETS = {"all": all_band_names, "rgb": rgb_bands}
-        
         image, band_names = sample.pack_to_3d(band_names=BAND_SETS["all"])
-        label = sample.label
+        label = sample.label.data
         filename = sample.sample_name
         
         image = torch.from_numpy(image.transpose(2, 0, 1)).float() 
-        # image = image / 255
-        # image = np.clip(image, 0, 1)
+        image = image / 255
+        image = np.clip(image, 0, 1)
         
         image=image.unsqueeze(1)
-
 
         return {
             "image": {
                 "optical": image,
             },
             "target": torch.tensor(label, dtype=torch.int64),
-            "metadata": {
-                "filename": filename},
+            "filename": filename,
+            "metadata": {},
         }
-
+        
     def download(self, silent=False):
         local_directory = Path(os.getenv("GEO_BENCH_DIR"))
         dataset_repo = self.download_url
@@ -155,7 +160,7 @@ class mForestnet(RawGeoFMDataset):
 
         for file in dataset_files:
 
-            if file not in ['classification_v1.0/m-forestnet.zip', 'classification_v1.0/normalizer.json']:
+            if file not in ['segmentation_v1.0/m-SA-crop-type.zip', 'segmentation_v1.0/normalizer.json']:
                 continue
 
             local_file_path = local_directory / file

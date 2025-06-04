@@ -1,0 +1,54 @@
+_target_: pangaea.datasets.geobench.mcashew-plantation.mCashewPlant
+dataset_name: mCashew-Plant
+root_path: ${oc.env:GEO_BENCH_DIR}/segmentation_v1.0/m-cashew-plant
+download_url: "recursix/geo-bench-1.0"
+auto_download: True
+
+img_size: 256
+multi_temporal: False
+multi_modal: False
+
+# classes
+ignore_index: 255
+num_classes: 7
+classes: 
+  - 'no data'
+  - 'well-managed plantation'
+  - 'poorly-managed plantation'
+  - 'non-plantation'
+  - 'residential'
+  - 'background'
+  - 'uncertain'
+distribution:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+
+
+bands:
+  optical:
+    - B1
+    - B2
+    - B3
+    - B4
+    - B5
+    - B6
+    - B7
+    - B8
+    - B8A
+    - B9
+    - B11
+    - B12
+    
+data_mean:
+  optical: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+data_std:
+  optical: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+data_min:
+  optical: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+data_max:
+  optical: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]

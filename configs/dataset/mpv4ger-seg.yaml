@@ -1,0 +1,43 @@
+_target_: pangaea.datasets.geobench.mpv4ger-seg.mPv4GerSeg
+dataset_name: mPv4GerSeg
+root_path: ${oc.env:GEO_BENCH_DIR}/segmentation_v1.0/m-pv4ger-seg
+download_url: "recursix/geo-bench-1.0"
+auto_download: True
+
+img_size: 320
+multi_temporal: False
+multi_modal: False
+
+# classes
+ignore_index: -1
+num_classes: 2
+classes: 
+  - 'no solar pv'
+  - 'solar pv'
+distribution:
+  - 0
+  - 0
+
+# data stats
+bands:
+  optical:
+    - B4
+    - B3
+    - B2
+
+data_mean:
+  optical:
+    - 131.102356
+    - 137.354091
+    - 139.761751
+
+data_std:
+  optical:
+    - 54.52768048660482
+    - 50.86544377633718
+    - 48.29800594656056
+
+data_min:
+  optical: [0.0, 0.0, 0.0]
+data_max:
+  optical: [255.0, 255.0, 255.0]

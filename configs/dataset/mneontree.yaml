@@ -1,0 +1,43 @@
+_target_: pangaea.datasets.geobench.mneontree.mNeonTree
+dataset_name: mNeonTree
+root_path: ${oc.env:GEO_BENCH_DIR}/segmentation_v1.0/m-NeonTree
+download_url: "recursix/geo-bench-1.0"
+auto_download: True
+
+img_size: 400
+multi_temporal: False
+multi_modal: False
+
+# classes
+ignore_index: -1
+num_classes: 2
+classes: 
+  - No tree
+  - Tree
+distribution:
+  - 0
+  - 0
+
+# data stats
+bands:
+  optical:
+    - B4
+    - B3
+    - B2
+
+data_mean:
+  optical:
+    - 122.29733333333333
+    - 131.00455555555556
+    - 108.44846666666666
+
+data_std:
+  optical:
+    - 54.053087350753124
+    - 51.442224204429245  
+    - 33.09221632578563
+
+data_min:
+  optical: [0.0, 0.0, 0.0]
+data_max:
+  optical: [255.0, 255.0, 255.0]

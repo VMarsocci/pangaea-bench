@@ -1,0 +1,56 @@
+_target_: pangaea.datasets.geobench.mchesapeake-landcover.mChesapeake
+dataset_name: mChesapeake
+root_path: ${oc.env:GEO_BENCH_DIR}/segmentation_v1.0/m-chesapeake
+download_url: "recursix/geo-bench-1.0"
+auto_download: True
+
+img_size: 256
+multi_temporal: False
+multi_modal: False
+
+# classes
+ignore_index: -1
+num_classes: 7
+classes: 
+  - 'water'
+  - 'tree-canopy-forest'
+  - 'low-vegetation-field'
+  - 'barren-land'
+  - 'impervious-other'
+  - 'impervious-roads'
+  - 'no data'
+distribution:
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+  - 0
+
+# data stats
+bands:
+  optical:
+    - B2
+    - B3
+    - B4
+    - B8
+
+data_mean:
+  optical:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+
+data_std:
+  optical:
+    - 0.0
+    - 0.0
+    - 0.0
+    - 0.0
+
+data_min:
+  optical: [0.0000, 0.0, 0.0, 0.0]
+data_max:
+  optical: [0.0000, 0.0, 0.0, 0.0]

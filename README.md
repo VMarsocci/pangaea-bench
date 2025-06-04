@@ -3,7 +3,8 @@
 # PANGAEA: A Global and Inclusive Benchmark for Geospatial Foundation Models
 
 📢 **News**
- - [23/04/2025] we pushed a new version of the code, fixing different bugs (e.g. commands are working for all the datasets now, metric computation with ignore_index is fixed, etc...). In the next month, we will provide: all downloadable datasets and models, downloadable stratified subsamples for all the datasets, classification. Stay tuned!
+ - [04/06/2025] We integrate [Geo-Bench](https://arxiv.org/abs/2306.03831) Datasets, including six segmentation and six classification tasks.
+ <!-- - [23/04/2025] we pushed a new version of the code, fixing different bugs (e.g. commands are working for all the datasets now, metric computation with ignore_index is fixed, etc...). In the next month, we will provide: all downloadable datasets and models, downloadable stratified subsamples for all the datasets, classification. Stay tuned! -->
  - [22/04/2025] on EarthDay, PANGAEA was officialy adopted to benchmark TerraMind. Read the [news](https://www.linkedin.com/posts/simonetta-cheli-7669879b_earthday-earthobservation-activity-7320439907028467712-LSzl?utm_source=share&utm_medium=member_desktop&rcm=ACoAACdT8q0BDNWYKAdDYGUe_X4fQOzSHO8jgAs) and the [pre-print](https://arxiv.org/abs/2504.11171). We will release the benchmarking code in PANGAEA very soon!
  - [05/12/2024] the [pre-print](https://arxiv.org/abs/2412.04204) is out!
 
@@ -52,6 +53,7 @@ And the following **datasets**:
 
 **Note**: The following datasets are **community-contributed** and are not part of the original benchmark repository. We are grateful for these contributions, which help enrich the benchmark's diversity and applicability.
 - **Potsdam dataset** [[Link](https://www.isprs.org/education/benchmarks/UrbanSemLab/2d-sem-label-potsdam.aspx)]. Contributed by [@pierreadorni](https://github.com/pierreadorni).
+- **Geo-Bench datasets** [[Link](https://github.com/ServiceNow/geo-bench)]. Contributed by [@yurujaja](https://github.com/yurujaja).
 
 The repository supports the following **tasks** using geospatial (foundation) models:
  - [Single Temporal Semantic Segmentation](#single-temporal-semantic-segmentation)
@@ -299,11 +301,11 @@ torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
 
 ### Using Your Own Dataset
 
-Refer to: [Adding a new downstream dataset](.github/CONTRIBUTING.md#adding-a-new-downstream-dataset)
+Refer to: [Adding a new downstream dataset](CONTRIBUTING.md#adding-a-new-downstream-dataset)
 
 ### Using Your Own Model
 
-Refer to: [Adding a new geospatial foundation model](.github/CONTRIBUTING.md#adding-a-new-geospatial-foundation-model)
+Refer to: [Adding a new geospatial foundation model](CONTRIBUTING.md#adding-a-new-geospatial-foundation-model)
 
 ## 🏃 Evaluation 
 
@@ -316,7 +318,7 @@ torchrun pangaea/run.py --config-name=test ckpt_dir=path_to_ckpt_dir
 ```
 
 ## ✏️ Contributing
-We appreciate all contributions. Please refer to [Contributing Guidelines](.github/CONTRIBUTING.md).
+We appreciate all contributions. Please refer to [Contributing Guidelines](CONTRIBUTING.md).
 
 ## ⚠️ TO DO
 
