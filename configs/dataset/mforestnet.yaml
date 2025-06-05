@@ -10,24 +10,38 @@ multi_temporal: False
 multi_modal: False
 
 ignore_index: -100
-classes:  ['', '', '', '', '', '', '', '', '', '', '', '']
+classes:  [
+    "Oil palm plantation",
+    "Timber plantation",
+    "Other large-scale plantations",
+    "Grassland shrubland",
+    "Small-scale agriculture",
+    "Small-scale mixed plantation",
+    "Small-scale oil palm plantation",
+    "Mining",
+    "Fish pond",
+    "Logging",
+    "Secondary forest",
+    "Other",
+]
+
 distribution: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 
 # data stats
 bands:
-  optical:
-    - B4
-    - B3
+  optical:   # 6 bands from Landsat, but band names here are corresponding to Sentinel-2
     - B2
-    - B5
-    - B6
-    - B7
+    - B3
+    - B4
+    - B8
+    - B11
+    - B12
 
 data_mean:
-  optical: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
-
+  optical: [72.852258, 83.677155, 77.58181, 123.987442, 91.536942, 74.719202]
 data_std:
-  optical: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  optical: [15.837172547567825, 14.788812599596188, 16.100543441881086, 16.35234883118129, 13.7882739778638, 12.69131413539181]
+
 data_min:
   optical: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 data_max:

@@ -123,8 +123,6 @@ class mChesapeake(RawGeoFMDataset):
         filename = sample.sample_name
         
         image = torch.from_numpy(image.transpose(2, 0, 1)).float() 
-        image = image / 255
-        image = np.clip(image, 0, 1)
         
         image=image.unsqueeze(1)
 

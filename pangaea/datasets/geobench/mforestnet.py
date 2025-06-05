@@ -114,9 +114,9 @@ class mForestnet(RawGeoFMDataset):
         # for band in sample.bands:
         #     print(f"  {band.band_info.name}: {band.data.shape}")
         all_band_names = (
-        "04",
-        "03",
         "02",
+        "03",
+        "04",
         "05",
         "06",
         "07",
@@ -129,8 +129,6 @@ class mForestnet(RawGeoFMDataset):
         filename = sample.sample_name
         
         image = torch.from_numpy(image.transpose(2, 0, 1)).float() 
-        # image = image / 255
-        # image = np.clip(image, 0, 1)
         
         image=image.unsqueeze(1)
 

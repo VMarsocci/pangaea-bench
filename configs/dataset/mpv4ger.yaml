@@ -10,7 +10,7 @@ multi_temporal: False
 multi_modal: False
 
 ignore_index: -100
-classes:  ['', '']
+classes:  ["no solar pv", "solar pv"]
 distribution: [0, 0]
 
 # data stats
@@ -21,10 +21,10 @@ bands:
     - B2
 
 data_mean:
-  optical: [0.0, 0.0, 0.0]
+  optical: [113.385309, 119.65935, 116.628328]
 data_std:
-  optical: [0.0, 0.0, 0.0]
+  optical: [54.19692448815262, 48.282311849967364, 44.668890717415586]
 data_min:
   optical: [0.0, 0.0, 0.0]
 data_max:
-  optical: [0.0, 0.0, 0.0]
+  optical: [255.0, 255.0, 255.0]

@@ -1,5 +1,3 @@
-
-import numpy as np
 import torch
 import os
 from pangaea.datasets.base import RawGeoFMDataset

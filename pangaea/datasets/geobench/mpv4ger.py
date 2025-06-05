@@ -111,13 +111,15 @@ class mPv4ger(RawGeoFMDataset):
     def __getitem__(self, index):
         sample = self.dataset[index]
 
-        image, band_names = sample.pack_to_3d(band_names=["Red", "Green", "Blue"])
+        all_band_names = ("Blue", "Green", "Red")
+        rgb_bands = ("Red", "Green", "Blue")
+        BAND_SETS = {"all": all_band_names, "rgb": rgb_bands}
+        image, band_names = sample.pack_to_3d(band_names=BAND_SETS["rgb"])
         label = sample.label
         filename = sample.sample_name
         
         image = torch.from_numpy(image.transpose(2, 0, 1)).float() 
-        # image = image / 255
-        # image = np.clip(image, 0, 1)
+
         
         image=image.unsqueeze(1)
 
