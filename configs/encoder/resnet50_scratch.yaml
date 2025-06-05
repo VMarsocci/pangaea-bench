@@ -1,0 +1,13 @@
+_target_: pangaea.encoders.resnet_encoder.ResNetEncoder
+encoder_weights: null
+
+input_size: ${dataset.img_size}
+depth: 50    # 18 for resnet18. 34 for resnet34. 50 for resnet50. 101 for resnet101. 152 for resnet152.
+
+input_bands: ${dataset.bands}
+  
+output_layers:
+  - 4
+  - 5
+  - 6
+  - 7

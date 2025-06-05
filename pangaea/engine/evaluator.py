@@ -62,8 +62,13 @@ class Evaluator:
         self.ignore_index = self.val_loader.dataset.ignore_index
         self.num_classes = len(self.classes)
         self.max_name_len = max([len(name) for name in self.classes])
-
         self.use_wandb = use_wandb
+        
+        # Compute valid class indices (excluding ignore index)
+        self.valid_class_indices = [
+            i for i in range(self.num_classes) if i != self.ignore_index
+        ]
+        self.valid_classes = [self.classes[i] for i in self.valid_class_indices]
 
     def evaluate(
             self,
@@ -366,19 +371,18 @@ class SegEvaluator(Evaluator):
         f1 = 2 * (precision * recall) / (precision + recall + 1e-6)
 
         # Calculate mean IoU, mean F1-score, and mean Accuracy
-        valid_classes = [i for i in range(self.num_classes) if i != self.ignore_index]
+        valid = self.valid_class_indices
             
-        miou = iou[valid_classes].mean().item() if valid_classes else 0.0
-        mf1 = f1[valid_classes].mean().item() if valid_classes else 0.0
+        miou = iou[valid].mean().item() if valid else 0.0
+        mf1 = f1[valid].mean().item() if valid else 0.0
         macc = (intersection.sum() / (confusion_matrix.sum() + 1e-6)).item() * 100
 
         # Convert metrics to CPU and to Python scalars
-        iou = [iou[i].item() for i in valid_classes]
-        f1 = [f1[i].item() for i in valid_classes]
-        precision = [precision[i].item() for i in valid_classes]
-        recall = [recall[i].item() for i in valid_classes]
-        self.classes = [self.classes[i] for i in valid_classes]
-
+        iou = [iou[i].item() for i in valid]
+        f1 = [f1[i].item() for i in valid]
+        precision = [precision[i].item() for i in valid]
+        recall = [recall[i].item() for i in valid]
+        
         # Prepare the metrics dictionary
         metrics = {
             "IoU": iou,
@@ -398,7 +402,7 @@ class SegEvaluator(Evaluator):
             metric_str = (
                     "\n".join(
                         c.ljust(self.max_name_len, " ") + "\t{:>7}".format("%.3f" % num)
-                        for c, num in zip(self.classes, values)
+                        for c, num in zip(self.valid_classes, values)
                     )
                     + "\n"
             )
@@ -434,19 +438,19 @@ class SegEvaluator(Evaluator):
                     f"{self.split}_mAcc": metrics["mAcc"],
                     **{
                         f"{self.split}_IoU_{c}": v
-                        for c, v in zip(self.classes, metrics["IoU"])
+                        for c, v in zip(self.valid_classes, metrics["IoU"])
                     },
                     **{
                         f"{self.split}_F1_{c}": v
-                        for c, v in zip(self.classes, metrics["F1"])
+                        for c, v in zip(self.valid_classes, metrics["F1"])
                     },
                     **{
                         f"{self.split}_Precision_{c}": v
-                        for c, v in zip(self.classes, metrics["Precision"])
+                        for c, v in zip(self.valid_classes, metrics["Precision"])
                     },
                     **{
                         f"{self.split}_Recall_{c}": v
-                        for c, v in zip(self.classes, metrics["Recall"])
+                        for c, v in zip(self.valid_classes, metrics["Recall"])
                     },
                 }
             )

@@ -1,6 +1,38 @@
 [![Tests](https://github.com/yurujaja/geofm-bench/actions/workflows/python-test.yml/badge.svg)](https://github.com/yurujaja/geofm-bench/actions/workflows/python-test.yml)
+<p align="center">
+  <img src=".github/pangaea-banner.png" alt="PANGAEA" width="480"/>
+</p>
+
+<p align="center">
+  <a href="https://arxiv.org/abs/2312.03048">
+    <img
+      src="https://badgen.net/badge/paper/arXiv/red"
+      alt="PANGAEA Paper"
+    />
+    </a>
+    <a href="https://www.eotdl.com/datasets">
+      <img
+         src="https://badgen.net/badge/Pangaea/Datasets/purple"
+         alt="PANGAEA Datasets"
+      />
+   </a>
+   <a href="https://www.eotdl.com/models">
+      <img
+         src="https://badgen.net/badge/Pangaea/Models/green"
+         alt="PANGAEA Models"
+      />
+   </a>
+   <a href="https://philabchallenges.vercel.app/pangaea/leaderboard">
+      <img
+         src="https://badgen.net/badge/Pangaea/Leaderboard/orange"
+         alt="PANGAEA Models"
+      />
+   </a>
+</p>
+
 
 # PANGAEA: A Global and Inclusive Benchmark for Geospatial Foundation Models
+
 
 📢 **News**
  - [04/06/2025] We integrate [Geo-Bench](https://arxiv.org/abs/2306.03831) Datasets, including six segmentation and six classification tasks.
