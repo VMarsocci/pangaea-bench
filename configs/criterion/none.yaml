@@ -1,0 +1,2 @@
+# returns its input unchanged – produces a 0-parameter nn.Identity module
+_target_: torch.nn.Identity

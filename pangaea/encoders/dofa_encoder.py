@@ -282,7 +282,7 @@ class DOFA_Encoder(Encoder):
         return output
 
     def load_encoder_weights(self, logger: Logger) -> None:
-        pretrained_model = torch.load(self.encoder_weights, map_location="cpu")
+        pretrained_model = torch.load(self.encoder_weights, map_location="cpu", weights_only=False)
         k = pretrained_model.keys()
         pretrained_encoder = {}
         incompatible_shape = {}

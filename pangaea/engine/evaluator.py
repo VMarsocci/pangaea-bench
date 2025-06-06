@@ -9,7 +9,9 @@ import wandb
 
 import torch
 import torch.nn.functional as F
+from torch import Tensor
 from torch.utils.data import DataLoader
+from pangaea.decoders.knnclassifier import KNNClassifier
 from tqdm import tqdm
 
 
@@ -135,7 +137,7 @@ class Evaluator:
         return merged_pred
 
 
-class ClassificationEvaluator(Evaluator):
+class LinearClassificationEvaluator(Evaluator):
     def __init__(
         self,
         val_loader,
@@ -159,7 +161,7 @@ class ClassificationEvaluator(Evaluator):
         
         t = time.time()
         if model_ckpt_path is not None:
-            model_dict = torch.load(model_ckpt_path, map_location=self.device)
+            model_dict = torch.load(model_ckpt_path, map_location=self.device, weights_only=False)
             model_name = os.path.basename(model_ckpt_path).split(".")[0]
             if "model" in model_dict:
                 model.module.load_state_dict(model_dict["model"])
@@ -239,10 +241,10 @@ class ClassificationEvaluator(Evaluator):
 
     def log_metrics(self, metrics: dict):
         def format_metric(name, value):
-            header = f"------- {name} --------\n"
+            header = f"[{self.split}] ------- {name} --------\n"
             value_str = (
-                "-------------------\n"
-                + "Mean".ljust(self.max_name_len, " ")
+                "[{self.split}] -------------------\n"
+                + "[{self.split}] Mean".ljust(self.max_name_len, " ")
                 + "\t{:>7}".format("%.3f" % value)
             )
             return header + value_str
@@ -265,7 +267,108 @@ class ClassificationEvaluator(Evaluator):
             })
         
 
+class KNNClassificationEvaluator(Evaluator):
+    """Builds a feature bank from *train_loader* and evaluates on *val_loader*."""
 
+    def __init__(
+        self,
+        val_loader,
+        exp_dir: str | Path,
+        device: torch.device,
+        inference_mode: str = "whole",
+        sliding_inference_batch: int = None,
+        use_wandb: bool = False,
+    ) -> None:
+        super().__init__(val_loader, exp_dir, device, use_wandb)
+        
+        self.logger = logging.getLogger()
+
+    def topk_acc(self, pred_rank: Tensor, target: Tensor, k: int) -> float:
+        return (pred_rank[:, :k] == target.unsqueeze(1)).any(1).float().mean().item()
+
+    def evaluate(
+        self, 
+        model: KNNClassifier, 
+        train_loader: DataLoader,  # used to build feature bank
+        model_name: str, 
+        model_ckpt_path: str | Path | None = None):
+       
+        """Build bank on the *current* training data, then run k-NN on val/test."""
+        t0 = time.time()
+        if model_ckpt_path is not None:
+            model_dict = torch.load(model_ckpt_path, map_location=self.device, weights_only=False)
+            model_name = os.path.basename(model_ckpt_path).split(".")[0]
+            if "model" in model_dict:
+                model.module.load_state_dict(model_dict["model"])
+            else:
+                model.module.load_state_dict(model_dict)
+            self.logger.info(f"Loaded {model_name} for evaluation")
+        
+        model.eval()
+        if isinstance(model, torch.nn.parallel.DistributedDataParallel):
+            model = model.module
+        if model._bank is None or model._bank_labels is None:
+            if train_loader is None:
+                raise ValueError("train_loader is required to build feature bank for k-NN probe")
+            model.build_feature_bank(train_loader, self.device)
+        self.topk = model.topk
+        total = 0
+        topk_correct = {k: 0 for k in self.topk}
+
+        for batch in tqdm(self.val_loader,
+                          desc=f"kNN-eval", leave=False):
+            image, target = batch["image"], batch["target"]
+            image = {k: v.to(self.device) for k, v in image.items()}
+            target = target.to(self.device)
+            
+            pred_rank = model.classify(image)        # (B, C) ints
+            bsz = target.size(0)
+            total += bsz
+
+            for k in self.topk:
+                topk_correct[k] += self.topk_acc(pred_rank, target, k) * bsz
+
+        metrics = {f"top{k}": topk_correct[k] / total for k in self.topk}
+        self.log_metrics(metrics)
+
+        return metrics, time.time() - t0
+
+    def __call__(self, model, model_name, model_ckpt_path=None, train_loader=None):
+        return self.evaluate(model, train_loader, model_name, model_ckpt_path)
+
+
+    def log_metrics(self, metrics: dict[str, float]) -> None:
+# ensure we have something to align to (reuse class-name length trick)
+        if not hasattr(self, "max_name_len"):
+            # 4 is the length of the word "Mean" – keeps the columns aligned
+            self.max_name_len = 4
+
+        def format_metric(name: str, value: float) -> str:
+            header = f"[{self.split}] ------- {name} --------\n"
+            value_str = (
+                f"[{self.split}] -------------------\n"
+                + f"[{self.split}] Mean".ljust(self.max_name_len, " ")
+                + "\t{:>7}".format("%.3f" % value)
+            )
+            return header + value_str
+
+        top1_str = format_metric("Top-1 Acc", metrics["top1"])
+        top5_str = format_metric("Top-2 Acc", metrics["top2"])
+
+        self.logger.info(top1_str)
+        self.logger.info(top5_str)
+
+        # optional Weights & Biases logging
+        if getattr(self, "use_wandb", False) and getattr(self, "rank", 0) == 0:
+            import wandb  # local import keeps dependency optional
+            wandb.log(
+                {
+                    f"{self.split}_top1": metrics["top1"],
+                    f"{self.split}_top2": metrics["top2"],
+                }
+            )
+
+     
 class SegEvaluator(Evaluator):
     """
     SegEvaluator is a class for evaluating segmentation models. It extends the Evaluator class and provides methods
@@ -398,7 +501,7 @@ class SegEvaluator(Evaluator):
 
     def log_metrics(self, metrics):
         def format_metric(name, values, mean_value):
-            header = f"------- {name} --------\n"
+            header = f"[{self.split}] ------- {name} --------\n"
             metric_str = (
                     "\n".join(
                         c.ljust(self.max_name_len, " ") + "\t{:>7}".format("%.3f" % num)
@@ -407,8 +510,8 @@ class SegEvaluator(Evaluator):
                     + "\n"
             )
             mean_str = (
-                    "-------------------\n"
-                    + "Mean".ljust(self.max_name_len, " ")
+                    f"[{self.split}]-------------------\n"
+                    + f"[{self.split}] Mean".ljust(self.max_name_len, " ")
                     + "\t{:>7}".format("%.3f" % mean_value)
             )
             return header + metric_str + mean_str
@@ -489,7 +592,7 @@ class RegEvaluator(Evaluator):
         t = time.time()
 
         if model_ckpt_path is not None:
-            model_dict = torch.load(model_ckpt_path, map_location=self.device)
+            model_dict = torch.load(model_ckpt_path, map_location=self.device, weights_only=False)
             model_name = os.path.basename(model_ckpt_path).split('.')[0]
             if 'model' in model_dict:
                 model.module.load_state_dict(model_dict["model"])
@@ -535,9 +638,9 @@ class RegEvaluator(Evaluator):
         return self.evaluate(model, model_name, model_ckpt_path)
 
     def log_metrics(self, metrics):
-        header = "------- MSE and RMSE --------\n"
-        mse = "-------------------\n" + 'MSE \t{:>7}'.format('%.3f' % metrics['MSE']) + '\n'
-        rmse = "-------------------\n" + 'RMSE \t{:>7}'.format('%.3f' % metrics['RMSE'])
+        header = f"[{self.split}] ------- MSE and RMSE --------\n"
+        mse = f"[{self.split}]-------------------\n" + 'MSE \t{:>7}'.format('%.3f' % metrics['MSE']) + '\n'
+        rmse = f"[{self.split}]-------------------\n" + 'RMSE \t{:>7}'.format('%.3f' % metrics['RMSE'])
         self.logger.info(header + mse + rmse)
 
         if self.use_wandb and self.rank == 0:

@@ -1,10 +1,13 @@
 import os as os
 import random
 from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import torch
+import logging
 
+_log = logging.getLogger(__name__)
 
 def seed_worker(worker_id):
     worker_seed = torch.initial_seed() % 2**32
@@ -41,12 +44,26 @@ def prepare_input(input_res):
     return dict(img=image)
 
 
-def get_best_model_ckpt_path(exp_dir: str | Path) -> str:
-    return os.path.join(
-        exp_dir, next(f for f in os.listdir(exp_dir) if f.endswith("_best.pth"))
+def _find_ckpt(exp_dir: str | Path, suffix: str) -> Optional[str]:
+    """Return the *first* file that ends with `suffix`; None if nothing found."""
+    exp_dir = Path(exp_dir)
+    for fname in exp_dir.iterdir():
+        if fname.name.endswith(suffix):
+            return str(fname)
+    # Nothing found – warn once.
+    _log.warning(
+        "No checkpoint matching '*%s' found in %s. "
+        "If this was a k-NN probe (no training), you can ignore this warning. Otherwise, check your experiment directory.",
+        suffix, exp_dir,
     )
+    return None
 
-def get_final_model_ckpt_path(exp_dir: str | Path) -> str:
-    return os.path.join(
-        exp_dir, next(f for f in os.listdir(exp_dir) if f.endswith("_final.pth"))
-    )
+
+def get_best_model_ckpt_path(exp_dir: str | Path) -> Optional[str]:
+    """Return '<exp_dir>/…_best.pth' or None when it does not exist."""
+    return _find_ckpt(exp_dir, "_best.pth")
+
+
+def get_final_model_ckpt_path(exp_dir: str | Path) -> Optional[str]:
+    """Return '<exp_dir>/…_final.pth' or None when it does not exist."""
+    return _find_ckpt(exp_dir, "_final.pth")

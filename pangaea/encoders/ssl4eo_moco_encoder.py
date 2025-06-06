@@ -119,7 +119,7 @@ class SSL4EO_MOCO_Encoder(Encoder):
         self.pos_embed.requires_grad = False
 
     def load_encoder_weights(self, logger: Logger) -> None:
-        checkpoint = torch.load(self.encoder_weights, map_location="cpu")
+        checkpoint = torch.load(self.encoder_weights, map_location="cpu", weights_only=False)
         pretrained_model = checkpoint["state_dict"]
         pretrained_model = {
             k.replace("module.base_encoder.", ""): v

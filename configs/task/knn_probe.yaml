@@ -1,26 +1,17 @@
 trainer:
-  _target_: pangaea.engine.trainer.ClassificationTrainer
+  _target_: pangaea.engine.trainer.KNNTrainer
   # params overwritten in run
   model: null
   train_loader: null
-  optimizer: null
-  lr_scheduler: null
   evaluator: null
   exp_dir: null
   device: null
-  criterion: null
-
-  # params to adapt
-  n_epochs: 50
+  n_epochs: 1
   precision: fp32
-  ckpt_interval: 50
-  eval_interval: 5
-  log_interval: 5
-  best_metric_key: accuracy
   use_wandb: ${use_wandb}
 
 evaluator:
-  _target_: pangaea.engine.evaluator.ClassificationEvaluator
+  _target_: pangaea.engine.evaluator.KNNClassificationEvaluator
   # params overwritten in run
   val_loader: null
   exp_dir: null

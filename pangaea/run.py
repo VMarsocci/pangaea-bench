@@ -151,7 +151,7 @@ def main(cfg: DictConfig) -> None:
     collate_fn = get_collate_fn(modalities)
 
     # training
-    if train_run:
+    if train_run or cfg.task.trainer.model_name == "knn_probe":
         # get preprocessor
         train_preprocessor = instantiate(
             cfg.preprocessing.train,
@@ -262,6 +262,7 @@ def main(cfg: DictConfig) -> None:
 
         trainer.train()
 
+    
     # Evaluation
     test_preprocessor = instantiate(
         cfg.preprocessing.test,
@@ -292,6 +293,10 @@ def main(cfg: DictConfig) -> None:
         model_ckpt_path = get_final_model_ckpt_path(exp_dir)
     else:
         model_ckpt_path = get_best_model_ckpt_path(exp_dir)
+        
+    if model_ckpt_path is None and not cfg.task.trainer.model_name == "knn_probe":
+        raise ValueError(f"No model checkpoint found in {exp_dir}")
+    
     test_evaluator.evaluate(decoder, "test_model", model_ckpt_path)
 
     if cfg.use_wandb and rank == 0:

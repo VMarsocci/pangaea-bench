@@ -522,7 +522,7 @@ class SSL4EO_Data2Vec_Encoder(Encoder):
         return output
 
     def load_encoder_weights(self, logger: Logger) -> None:
-        checkpoint = torch.load(self.encoder_weights, map_location="cpu")
+        checkpoint = torch.load(self.encoder_weights, map_location="cpu", weights_only=False)
         pretrained_model = checkpoint["model"]
 
         k = pretrained_model.keys()
