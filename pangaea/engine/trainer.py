@@ -20,7 +20,7 @@ class Trainer:
         self,
         model: nn.Module,
         train_loader: DataLoader,
-        criterion: nn.Module,
+        criterion: nn.Module | None,
         optimizer: Optimizer,
         lr_scheduler: LRScheduler,
         evaluator: torch.nn.Module,
@@ -230,7 +230,7 @@ class Trainer:
         Args:
             resume_path (str | pathlib.Path): path to the checkpoint.
         """
-        model_dict = torch.load(resume_path, map_location=self.device)
+        model_dict = torch.load(resume_path, map_location=self.device, weights_only=False)
         if "model" in model_dict:
             self.model.module.load_state_dict(model_dict["model"])
             self.optimizer.load_state_dict(model_dict["optimizer"])
@@ -354,7 +354,7 @@ class Trainer:
             v.reset()
 
 
-class ClassificationTrainer(Trainer):
+class LinearClassificationTrainer(Trainer):
     def __init__(
         self,
         model: nn.Module,
@@ -476,7 +476,64 @@ class ClassificationTrainer(Trainer):
         self.training_metrics["F1"].update(f1.item())
     
 
+class KNNTrainer(Trainer):
+    """A zero-learning shell so run.py can stay unchanged."""
 
+    
+    def __init__(
+        self,
+        model: nn.Module,              # should be KNNClassifier
+        train_loader: DataLoader,
+        evaluator,
+        lr_scheduler,
+        optimizer,
+        criterion,
+        exp_dir: pathlib.Path | str,
+        device: torch.device,
+        n_epochs: int,
+        precision: str,
+        use_wandb: bool,
+    ):
+        dummy_opt   = torch.optim.SGD([torch.empty(0, device=device, requires_grad=True)], lr=1)
+        dummy_sched = torch.optim.lr_scheduler.LambdaLR(dummy_opt, lambda _: 1)
+
+        super().__init__(
+            model=model,
+            train_loader=train_loader,
+            criterion=nn.Identity(),       # never used
+            optimizer=dummy_opt,
+            lr_scheduler=dummy_sched,
+            evaluator=evaluator,
+            n_epochs=n_epochs,
+            exp_dir=exp_dir,
+            device=device,
+            precision=precision,
+            use_wandb=use_wandb,
+            ckpt_interval=999,
+            eval_interval=1,
+            log_interval=999,
+            best_metric_key="top1",
+        )
+        self.logger: logging.Logger = logging.getLogger()
+        self.train_loader = train_loader
+    # ------------------------------------------------------------------ #
+    def train(self):
+        self.logger.info("=========== k-NN evaluation only ===========")
+        self.evaluator(self.model, model_name="probe", train_loader=self.train_loader)
+        self.logger.info("============================================")
+        dummy_path1 = os.path.join(self.exp_dir, "checkpoint_dummy_best.pth")
+        dummy_path2 = os.path.join(self.exp_dir, "checkpoint_dummy_final.pth")
+        if self.rank == 0 and not os.path.exists(dummy_path1):
+            torch.save({"knn_probe": True}, dummy_path1)
+        if self.rank == 0 and not os.path.exists(dummy_path2):
+            torch.save({"knn_probe": True}, dummy_path2)
+
+    # never called
+    def compute_loss(self, logits, target): ...
+    def compute_logging_metrics(self, logits, target): ...
+
+            
+            
 class SegTrainer(Trainer):
     def __init__(
         self,

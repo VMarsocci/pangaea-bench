@@ -500,7 +500,7 @@ class SatlasNet_Encoder(Encoder):
         else:
             raise Exception(f"Failed to download weights from {self.weights_url}")
 
-        pretrained_model = torch.load(weights_file, map_location=torch.device("cpu"))
+        pretrained_model = torch.load(weights_file, map_location=torch.device("cpu"), weights_only=False)
 
         # If using a model for multi-image, need the Aggretation to wrap underlying backbone model.
         prefix, prefix_allowed_count = None, None

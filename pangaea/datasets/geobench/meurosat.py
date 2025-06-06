@@ -15,7 +15,7 @@ except ImportError:
     import geobench
 
 
-class mEuroSat(RawGeoFMDataset):
+class mEuroSat(torch.utils.data.Dataset):
     def __init__(
         self,
         split: str,
@@ -66,41 +66,30 @@ class mEuroSat(RawGeoFMDataset):
             download_url (str): url to download the dataset.
             auto_download (bool): whether to download the dataset automatically.
         """
-        super(mEuroSat, self).__init__(
-            split=split,
-            dataset_name=dataset_name,
-            multi_modal=multi_modal,
-            multi_temporal=multi_temporal,
-            root_path=root_path,
-            classes=classes,
-            num_classes=num_classes,
-            ignore_index=ignore_index,
-            img_size=img_size,
-            bands=bands,
-            distribution=distribution,
-            data_mean=data_mean,
-            data_std=data_std,
-            data_min=data_min,
-            data_max=data_max,
-            download_url=download_url,
-            auto_download=auto_download,
-        )
-
+        super(mEuroSat, self).__init__()
+        self.split = split
+        self.dataset_name = dataset_name
+        self.multi_modal = multi_modal
+        self.multi_temporal = multi_temporal
+        self.root_path = root_path
+        self.classes = classes
+        self.num_classes = num_classes
+        self.ignore_index = ignore_index
+        self.img_size = img_size
+        self.bands = bands
+        self.distribution = distribution
         self.data_mean = data_mean
         self.data_std = data_std
         self.data_min = data_min
         self.data_max = data_max
-        self.classes = classes
-        self.img_size = img_size
-        self.distribution = distribution
-        self.num_classes = num_classes
-        self.ignore_index = ignore_index
         self.download_url = download_url
         self.auto_download = auto_download
 
-        self.root_path = root_path
+        if not os.path.exists(self.root_path):
+            self.download(self)
 
-        self.split = split
+
+
         
         split_mapping = {'train': 'train', 'val': 'valid', 'test': 'test'}
         task = geobench.load_task_specs(self.root_path)
@@ -135,15 +124,13 @@ class mEuroSat(RawGeoFMDataset):
         
         image = torch.from_numpy(image.transpose(2, 0, 1)).float() 
         
-        image=image.unsqueeze(1)
+        # image=image.unsqueeze(1)
 
         return {
-            "image": {
-                "optical": image,
-            },
+            "image": image,
             "target": torch.tensor(label, dtype=torch.int64),
-            "metadata": {
-                "filename": filename},
+            # "metadata": {
+            #     "filename": filename},
         }
         
     def download(self, silent=False):

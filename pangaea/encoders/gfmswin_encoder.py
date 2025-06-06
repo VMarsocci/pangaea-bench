@@ -739,7 +739,7 @@ class GFMSwin_Encoder(Encoder):
         return {"relative_position_bias_table"}
 
     def load_encoder_weights(self, logger: Logger) -> None:
-        pretrained_model = torch.load(self.encoder_weights, map_location="cpu")
+        pretrained_model = torch.load(self.encoder_weights, map_location="cpu", weights_only=False)
         pretrained_model = adapt_gfm_pretrained(self, pretrained_model)
 
         k = pretrained_model.keys()

@@ -3,7 +3,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 from pangaea.decoders.base import Decoder
-from pangaea.decoders.ltae import LTAE2d, LTAEChannelAdaptor
 from pangaea.encoders.base import Encoder
 
 
@@ -17,6 +16,17 @@ class LinearClassifier(Decoder):
         feature_multiplier: int = 1,
         in_channels: list[int] | None = None,
     ):
+        """ Linear decoder for classification tasks. 
+
+        Args:
+            encoder (Encoder): Model used for feature extraction. Must define a forward(images) method
+                that returns a feature tensor.
+            num_classes (int): number of classes in the dataset.
+            finetune (bool): whether to finetune the encoder.
+            feature_multiplier (int, optional): feature multiplier. Defaults to 1.
+            in_channels (list[int], optional): input channels. Defaults to None.
+        """
+        
         super().__init__(
             encoder=encoder,
             num_classes=num_classes,
@@ -72,7 +82,7 @@ class LinearClassifier(Decoder):
             torch.Tensor: output tensor of shape (B, num_classes, H', W') with (H' W') coressponding to the output_shape.
         """
 
-        # img[modality] of shape [B C T=1 H W]
+        # img[modality] of shape [B C T>1 H W]
         if self.encoder.multi_temporal:
             if not self.finetune:
                 with torch.no_grad():

@@ -439,7 +439,7 @@ class RemoteCLIP_Encoder(Encoder):
             param.requires_grad = False
 
     def load_encoder_weights(self, logger: Logger) -> None:
-        pretrained_model = torch.load(self.encoder_weights, map_location="cpu")
+        pretrained_model = torch.load(self.encoder_weights, map_location="cpu", weights_only=False)
         visual_only_model = {}
         for k, v in pretrained_model.items():
             if k.startswith("visual."):

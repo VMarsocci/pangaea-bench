@@ -136,7 +136,7 @@ class ScaleMAE_Encoder(Encoder):
             nn.init.constant_(m.weight, 1.0)
 
     def load_encoder_weights(self, logger: Logger) -> None:
-        pretrained_model = torch.load(self.encoder_weights, map_location="cpu")["model"]
+        pretrained_model = torch.load(self.encoder_weights, map_location="cpu", weights_only=False)["model"]
         k = pretrained_model.keys()
         pretrained_encoder = {}
         incompatible_shape = {}
@@ -149,11 +149,11 @@ class ScaleMAE_Encoder(Encoder):
             else:
                 pretrained_encoder[name] = pretrained_model[name]
 
-        self.load_state_dict(pretrained_encoder, strict=False)
+        self.load_state_dict(pretrained_encoder, strict=False, weights_only=False)
         self.parameters_warning(missing, incompatible_shape, logger)
 
     def forward(self, image):
-        x = image["optical"].squeeze(2)
+        x = image
         B, _, h, w = x.shape
         x = self.patch_embed(x)
 

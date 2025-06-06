@@ -3,6 +3,7 @@ train:
     preprocessor_cfg:
         - _target_: pangaea.engine.data_preprocessor.ResizeToEncoder
         - _target_: pangaea.engine.data_preprocessor.BandFilter
+        - _target_: pangaea.engine.data_preprocessor.NormalizeMeanStd
         - _target_: pangaea.engine.data_preprocessor.BandPadding
 
 val:
@@ -10,6 +11,7 @@ val:
     preprocessor_cfg:
         - _target_: pangaea.engine.data_preprocessor.ResizeToEncoder
         - _target_: pangaea.engine.data_preprocessor.BandFilter
+        - _target_: pangaea.engine.data_preprocessor.NormalizeMeanStd
         - _target_: pangaea.engine.data_preprocessor.BandPadding
 
 test:
@@ -17,4 +19,5 @@ test:
     preprocessor_cfg:
         - _target_: pangaea.engine.data_preprocessor.ResizeToEncoder
         - _target_: pangaea.engine.data_preprocessor.BandFilter
+        - _target_: pangaea.engine.data_preprocessor.NormalizeMeanStd
         - _target_: pangaea.engine.data_preprocessor.BandPadding

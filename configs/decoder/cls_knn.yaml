@@ -1,0 +1,10 @@
+_target_: pangaea.decoders.knnclassifier.KNNClassifier
+
+encoder: null
+num_classes: ${dataset.num_classes}
+finetune: false
+knn_k: 200
+knn_t: 0.1
+topk: [1, 2]
+normalize: true
+feature_dtype: float16
