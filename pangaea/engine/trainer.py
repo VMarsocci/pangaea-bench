@@ -478,7 +478,6 @@ class LinearClassificationTrainer(Trainer):
 
 class KNNTrainer(Trainer):
     """A zero-learning shell so run.py can stay unchanged."""
-
     
     def __init__(
         self,
@@ -532,8 +531,7 @@ class KNNTrainer(Trainer):
     def compute_loss(self, logits, target): ...
     def compute_logging_metrics(self, logits, target): ...
 
-            
-            
+                       
 class SegTrainer(Trainer):
     def __init__(
         self,

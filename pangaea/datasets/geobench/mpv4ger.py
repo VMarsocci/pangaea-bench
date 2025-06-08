@@ -120,9 +120,7 @@ class mPv4ger(RawGeoFMDataset):
         
         image = torch.from_numpy(image.transpose(2, 0, 1)).float() 
 
-        
         image=image.unsqueeze(1)
-
 
         return {
             "image": {

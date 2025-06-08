@@ -85,12 +85,7 @@ class mEuroSat(torch.utils.data.Dataset):
         self.download_url = download_url
         self.auto_download = auto_download
 
-        if not os.path.exists(self.root_path):
-            self.download(self)
 
-
-
-        
         split_mapping = {'train': 'train', 'val': 'valid', 'test': 'test'}
         task = geobench.load_task_specs(self.root_path)
         self.dataset = task.get_dataset(split=split_mapping[self.split])
@@ -124,13 +119,15 @@ class mEuroSat(torch.utils.data.Dataset):
         
         image = torch.from_numpy(image.transpose(2, 0, 1)).float() 
         
-        # image=image.unsqueeze(1)
+        image=image.unsqueeze(1)
 
         return {
-            "image": image,
+            "image": {
+                "optical": image,
+            },
             "target": torch.tensor(label, dtype=torch.int64),
-            # "metadata": {
-            #     "filename": filename},
+            "metadata": {
+                "filename": filename},
         }
         
     def download(self, silent=False):

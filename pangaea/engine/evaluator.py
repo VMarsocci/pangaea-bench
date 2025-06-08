@@ -243,8 +243,8 @@ class LinearClassificationEvaluator(Evaluator):
         def format_metric(name, value):
             header = f"[{self.split}] ------- {name} --------\n"
             value_str = (
-                "[{self.split}] -------------------\n"
-                + "[{self.split}] Mean".ljust(self.max_name_len, " ")
+                f"[{self.split}] -------------------\n"
+                + f"[{self.split}] Mean".ljust(self.max_name_len, " ")
                 + "\t{:>7}".format("%.3f" % value)
             )
             return header + value_str

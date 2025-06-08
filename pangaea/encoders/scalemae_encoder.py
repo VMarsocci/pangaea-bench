@@ -149,11 +149,11 @@ class ScaleMAE_Encoder(Encoder):
             else:
                 pretrained_encoder[name] = pretrained_model[name]
 
-        self.load_state_dict(pretrained_encoder, strict=False, weights_only=False)
+        self.load_state_dict(pretrained_encoder, strict=False)
         self.parameters_warning(missing, incompatible_shape, logger)
 
     def forward(self, image):
-        x = image
+        x = image["optical"].squeeze(2)
         B, _, h, w = x.shape
         x = self.patch_embed(x)
 

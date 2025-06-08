@@ -119,9 +119,9 @@ class Preprocessor(BasePreprocessor):
             "target": torch.Tensor of shape (H W),
              "metadata": dict}.
         """
-        # self.check_dimension(data)
-        # for process in self.preprocessor:
-        #     data = process(data)
+        self.check_dimension(data)
+        for process in self.preprocessor:
+            data = process(data)
 
         return data
 

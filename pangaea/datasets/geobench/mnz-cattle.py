@@ -104,8 +104,7 @@ class mNzCattle(RawGeoFMDataset):
         
         split_mapping = {'train': 'train', 'val': 'valid', 'test': 'test'}
         
-        self.dataset_path = os.path.join(self.root_path, 'segmentation_v1.0', 'm-nz-cattle')
-        task = geobench.load_task_specs(self.dataset_path)
+        task = geobench.load_task_specs(self.root_path)
         self.dataset = task.get_dataset(split=split_mapping[self.split])
 
     def __len__(self):
@@ -125,7 +124,6 @@ class mNzCattle(RawGeoFMDataset):
         image = torch.from_numpy(image.transpose(2, 0, 1)).float() 
 
         image=image.unsqueeze(1)
-
 
         return {
             "image": {

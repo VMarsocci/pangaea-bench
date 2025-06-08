@@ -1,5 +1,5 @@
 trainer:
-  _target_: pangaea.engine.trainer.ClassificationTrainer
+  _target_: pangaea.engine.trainer.LinearClassificationTrainer
   # params overwritten in run
   model: null
   train_loader: null
@@ -22,7 +22,7 @@ trainer:
   use_wandb: ${use_wandb}
 
 evaluator:
-  _target_: pangaea.engine.evaluator.ClassificationEvaluator
+  _target_: pangaea.engine.evaluator.LinearClassificationEvaluator
   # params overwritten in run
   val_loader: null
   exp_dir: null

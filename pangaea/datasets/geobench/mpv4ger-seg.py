@@ -121,7 +121,6 @@ class mPv4GerSeg(RawGeoFMDataset):
 
         image=image.unsqueeze(1)
 
-
         return {
             "image": {
                 "optical": image,
