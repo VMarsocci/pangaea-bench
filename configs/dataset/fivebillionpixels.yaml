@@ -1,6 +1,6 @@
 _target_: pangaea.datasets.fivebillionpixels.FiveBillionPixels
 dataset_name: FiveBillionPixels
-root_path: /mimer/NOBACKUP/groups/naiss2024-22-857/datasets/Five-Billion-Pixels/cropped/new
+root_path: /geomatics/gpuserver-1/vmarsocci/FiveBillionPixels/cropped
 download_url: False 
 auto_download: False
 use_cmyk: False

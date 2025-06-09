@@ -1,6 +1,6 @@
 _target_: pangaea.datasets.sen1floods11.Sen1Floods11
 dataset_name: Sen1Floods11
-root_path: ./data/sen1floods11
+root_path: ./data/sen1floods11_v1.1
 download_url: 
 gcs_bucket: sen1floods11
 auto_download: True
