@@ -289,6 +289,7 @@ For linear classification, you can use either single-label or multi-label classi
 
 For single-label classification (e.g. m-Brick-Kiln dataset):
 ```
+export GEO_BENCH_DIR=YOUR/PATH/DIR   # Note that `export GEO_BENCH_DIR=YOUR/PATH/DIR` is required for Geo-Bench datasets.
 torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
    --config-name=train \
    dataset=mbrickkiln \
@@ -304,6 +305,7 @@ torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
 
 For multi-label classification (e.g. MBigEarthNet dataset):
 ```
+export GEO_BENCH_DIR=YOUR/PATH/DIR   # Note that `export GEO_BENCH_DIR=YOUR/PATH/DIR` is required for Geo-Bench datasets.
 torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
    --config-name=train \
    dataset=mbigearthnet \
@@ -322,6 +324,7 @@ torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
 For KNN probe classification, you'll use a different decoder and task config. This is useful for evaluating the quality of learned representations without any fine-tuning. Here's an example using the m-EuroSat dataset:
 
 ```
+export GEO_BENCH_DIR=YOUR/PATH/DIR   # Note that `export GEO_BENCH_DIR=YOUR/PATH/DIR` is required for Geo-Bench datasets.
 torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
    --config-name=train \
    dataset=meurosat \

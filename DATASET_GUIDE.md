@@ -258,6 +258,7 @@ This document provides a detailed overview of the datasets used in this reposito
    task=segmentation
   ```
 ### Geo-Bench Datasets 
+Note that `export GEO_BENCH_DIR=YOUR/PATH/DIR` is required.
 -  For multi-label linear classification, e.g., m-BigEarthNet
     ```
     export GEO_BENCH_DIR=YOUR/PATH/DIR
