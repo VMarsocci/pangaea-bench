@@ -93,6 +93,8 @@ The repository supports the following **tasks** using geospatial (foundation) mo
  - [Change Detection](#change-detection)
  - [Single Temporal Regression](#single-temporal-regression)
  - [Multi-Temporal Regression](#multi-temporal-regression)
+ - [Linear Classification](#linear-classification)
+ - [KNN Probe Classification](#knn-probe-classification)
 
 It is also possible to train some [supervised baselines](#-fully-supervised-baseline), based on UNet and ViT.
 
@@ -280,6 +282,63 @@ torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
 
 To use SatlasNet encoder, please refer to the multi-temporal semantic segmentation example.
 To overwrite parameters, please check the Single Temporal Semantic Segmentation example.
+
+#### Linear Classification
+
+For linear classification, you can use either single-label or multi-label classification depending on your dataset. The main difference is in the task config and criterion used.
+
+For single-label classification (e.g. m-Brick-Kiln dataset):
+```
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=mbrickkiln \
+   encoder=remoteclip \
+   decoder=cls_linear \
+   preprocessing=cls_resize \
+   criterion=cross_entropy \
+   task=linear_classification \
+   task.trainer.n_epochs=50 \
+   batch_size=16 \
+   finetune=false
+```
+
+For multi-label classification (e.g. MBigEarthNet dataset):
+```
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=mbigearthnet \
+   encoder=remoteclip \
+   decoder=cls_linear \
+   preprocessing=cls_resize \
+   criterion=binary_cross_entropy \
+   task=linear_classification_multi_label \
+   task.trainer.n_epochs=50 \
+   batch_size=16 \
+   finetune=false
+```
+
+#### KNN Probe Classification
+
+For KNN probe classification, you'll use a different decoder and task config. This is useful for evaluating the quality of learned representations without any fine-tuning. Here's an example using the m-EuroSat dataset:
+
+```
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=meurosat \
+   encoder=remoteclip \
+   decoder=cls_knn \
+   preprocessing=cls_resize \
+   criterion=none \
+   task=knn_probe \
+   batch_size=32 \
+   finetune=false
+```
+
+Note that for KNN probe:
+- The criterion is set to `none` since no training is performed
+- The batch size can be larger since we're only doing inference
+- `finetune` is set to `false` as we're only using the pre-trained encoder
+
 
 ### 💻 End-to-end Finetuning
 

@@ -269,106 +269,116 @@ class LinearClassificationEvaluator(Evaluator):
 
 class KNNClassificationEvaluator(Evaluator):
     """Builds a feature bank from *train_loader* and evaluates on *val_loader*."""
-
     def __init__(
         self,
-        val_loader,
+        val_loader: DataLoader,
         exp_dir: str | Path,
         device: torch.device,
         inference_mode: str = "whole",
         sliding_inference_batch: int = None,
         use_wandb: bool = False,
+        multi_label: bool = False,
     ) -> None:
         super().__init__(val_loader, exp_dir, device, use_wandb)
-        
+        self.multi_label = multi_label
         self.logger = logging.getLogger()
+        # e.g., self.split is set by base Evaluator to "val" or "test"
 
     def topk_acc(self, pred_rank: Tensor, target: Tensor, k: int) -> float:
-        return (pred_rank[:, :k] == target.unsqueeze(1)).any(1).float().mean().item()
+        if self.multi_label:
+            # pred_rank and target are both (B, C) binary
+            pred_np = pred_rank.cpu().numpy()
+            target_np = target.cpu().numpy()
+            return sklearn.metrics.f1_score(
+                target_np, pred_np, average='micro', zero_division=0
+            )
+        else:
+            # single-label: pred_rank is (B, C) sorted class indices
+            return (pred_rank[:, :k] == target.unsqueeze(1)).any(1).float().mean().item()
 
     def evaluate(
-        self, 
-        model: KNNClassifier, 
-        train_loader: DataLoader,  # used to build feature bank
-        model_name: str, 
-        model_ckpt_path: str | Path | None = None):
-       
-        """Build bank on the *current* training data, then run k-NN on val/test."""
+        self,
+        model: KNNClassifier,
+        train_loader: DataLoader,
+        model_name: str,
+        model_ckpt_path: str | Path | None = None
+    ):
         t0 = time.time()
+        # Load checkpoint if provided
         if model_ckpt_path is not None:
-            model_dict = torch.load(model_ckpt_path, map_location=self.device, weights_only=False)
+            ckpt = torch.load(model_ckpt_path, map_location=self.device, weights_only=False)
             model_name = os.path.basename(model_ckpt_path).split(".")[0]
-            if "model" in model_dict:
-                model.module.load_state_dict(model_dict["model"])
-            else:
-                model.module.load_state_dict(model_dict)
+            state = ckpt.get("model", ckpt)
+            model.module.load_state_dict(state)
             self.logger.info(f"Loaded {model_name} for evaluation")
-        
+
         model.eval()
         if isinstance(model, torch.nn.parallel.DistributedDataParallel):
             model = model.module
+
         if model._bank is None or model._bank_labels is None:
             if train_loader is None:
                 raise ValueError("train_loader is required to build feature bank for k-NN probe")
             model.build_feature_bank(train_loader, self.device)
-        self.topk = model.topk
-        total = 0
-        topk_correct = {k: 0 for k in self.topk}
 
-        for batch in tqdm(self.val_loader,
-                          desc=f"kNN-eval", leave=False):
+        total = 0
+        topk_correct = {k: 0.0 for k in model.topk}
+
+        for batch in tqdm(self.val_loader, desc="kNN-compute", leave=True):
             image, target = batch["image"], batch["target"]
             image = {k: v.to(self.device) for k, v in image.items()}
             target = target.to(self.device)
-            
-            pred_rank = model.classify(image)        # (B, C) ints
+
+            # one-hot encode val targets for multi-label
+            if self.multi_label and target.dim() == 1:
+                target = F.one_hot(target, num_classes=model.num_classes).float()
+
+            pred = model.classify(image)
             bsz = target.size(0)
             total += bsz
 
-            for k in self.topk:
-                topk_correct[k] += self.topk_acc(pred_rank, target, k) * bsz
+            if self.multi_label:
+                # only compute a single F1 per batch
+                f1 = sklearn.metrics.f1_score(
+                    target.cpu().numpy(),
+                    pred.cpu().numpy(),
+                    average='micro',
+                    zero_division=0
+                )
+                topk_correct[ model.topk[0] ] += f1 * bsz
+            else:
+                for k in model.topk:
+                    acc = self.topk_acc(pred, target, k)
+                    topk_correct[k] += acc * bsz
 
-        metrics = {f"top{k}": topk_correct[k] / total for k in self.topk}
-        self.log_metrics(metrics)
+        # Aggregate metrics
+        if self.multi_label:
+            final_f1 = topk_correct[ model.topk[0] ] / total
+            self.logger.info(f"[{self.split}] F1 Score: {final_f1:.3f}")
+            if self.use_wandb and getattr(self, "rank", 0) == 0:
+                import wandb
+                wandb.log({f"{self.split}_f1": final_f1})
+            metrics = {"f1": final_f1}
+        else:
+            metrics = {f"top{k}": topk_correct[k] / total for k in model.topk}
+            # log single-label metrics
+            top1_str = f"[{self.split}] Top-1 Acc: {metrics['top1']:.3f}"
+            top2_str = f"[{self.split}] Top-2 Acc: {metrics.get('top2', 0):.3f}"
+            self.logger.info(top1_str)
+            self.logger.info(top2_str)
+            if self.use_wandb and getattr(self, "rank", 0) == 0:
+                import wandb
+                wandb.log({
+                    f"{self.split}_top1": metrics['top1'],
+                    f"{self.split}_top2": metrics.get('top2', metrics['top1']),
+                })
 
         return metrics, time.time() - t0
 
     def __call__(self, model, model_name, model_ckpt_path=None, train_loader=None):
         return self.evaluate(model, train_loader, model_name, model_ckpt_path)
-
-
-    def log_metrics(self, metrics: dict[str, float]) -> None:
-# ensure we have something to align to (reuse class-name length trick)
-        if not hasattr(self, "max_name_len"):
-            # 4 is the length of the word "Mean" – keeps the columns aligned
-            self.max_name_len = 4
-
-        def format_metric(name: str, value: float) -> str:
-            header = f"[{self.split}] ------- {name} --------\n"
-            value_str = (
-                f"[{self.split}] -------------------\n"
-                + f"[{self.split}] Mean".ljust(self.max_name_len, " ")
-                + "\t{:>7}".format("%.3f" % value)
-            )
-            return header + value_str
-
-        top1_str = format_metric("Top-1 Acc", metrics["top1"])
-        top5_str = format_metric("Top-2 Acc", metrics["top2"])
-
-        self.logger.info(top1_str)
-        self.logger.info(top5_str)
-
-        # optional Weights & Biases logging
-        if getattr(self, "use_wandb", False) and getattr(self, "rank", 0) == 0:
-            import wandb  # local import keeps dependency optional
-            wandb.log(
-                {
-                    f"{self.split}_top1": metrics["top1"],
-                    f"{self.split}_top2": metrics["top2"],
-                }
-            )
-
-     
+                             
+                             
 class SegEvaluator(Evaluator):
     """
     SegEvaluator is a class for evaluating segmentation models. It extends the Evaluator class and provides methods

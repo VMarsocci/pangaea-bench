@@ -258,7 +258,7 @@ This document provides a detailed overview of the datasets used in this reposito
    task=segmentation
   ```
 ### Geo-Bench Datasets 
--  For multi-label classification, e.g., m-BigEarthNet
+-  For multi-label linear classification, e.g., m-BigEarthNet
     ```
     export GEO_BENCH_DIR=YOUR/PATH/DIR
     torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py  \
@@ -268,21 +268,21 @@ This document provides a detailed overview of the datasets used in this reposito
       decoder=cls_linear  \
       preprocessing=cls_resize \
       criterion=binary_cross_entropy \
-      task=classification_multi_label \
+      task=linear_classification_multi_label \
       finetune=false
     ```
 
--  For single-label classification, i.e., m-EuroSat, m-Brick-Kiln, m-ForestNet, m-PV4Ger, m-So2Sat
+-  For single-label linear classification, i.e., m-EuroSat, m-Brick-Kiln, m-ForestNet, m-PV4Ger, m-So2Sat
     ```
       export GEO_BENCH_DIR=YOUR/PATH/DIR
       torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py  \
         --config-name=train \
         dataset=meurosat \
-        encoder=dofa  \
+        encoder=remoteclip  \
         decoder=cls_linear  \
         preprocessing=cls_resize \
         criterion=cross_entropy \
-        task=classification \
+        task=linear_classification \
         finetune=false
       ```
 
@@ -299,3 +299,42 @@ This document provides a detailed overview of the datasets used in this reposito
         task=segmentation \
         finetune=false
       ```
+
+-  For KNN probe classification, i.e., m-EuroSat, m-Brick-Kiln, m-ForestNet, m-PV4Ger, m-So2Sat
+    ```
+      export GEO_BENCH_DIR=YOUR/PATH/DIR
+      torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py  \
+        --config-name=train \
+        dataset=meurosat \
+        encoder=remoteclip  \
+        decoder=cls_knn  \
+        preprocessing=cls_resize \
+        criterion=none \
+        task=knn_probe \
+        batch_size=32 \
+        finetune=false
+      ```
+    Note that for KNN probe:
+    - The criterion is set to `none` since no training is performed
+    - The batch size can be larger since we're only doing inference
+    - `finetune` is set to `false` as we're only using the pre-trained encoder
+
+-  For multi-label KNN probe classification, i.e., m-BigEarthNet
+    ```
+      export GEO_BENCH_DIR=YOUR/PATH/DIR
+      torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py  \
+        --config-name=train \
+        dataset=mbigearthnet \
+        encoder=remoteclip  \
+        decoder=cls_knn_multilabel  \
+        preprocessing=cls_resize \
+        criterion=none \
+        task=knn_probe_multi_label \
+        batch_size=32 \
+        finetune=false
+      ```
+    Note that for multi-label KNN probe:
+    - The criterion is set to `none` since no training is performed
+    - The batch size can be larger since we're only doing inference
+    - `finetune` is set to `false` as we're only using the pre-trained encoder
+    - The task is set to `knn_probe_multi_label` to handle multiple labels per sample

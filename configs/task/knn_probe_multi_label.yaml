@@ -1,0 +1,23 @@
+trainer:
+  _target_: pangaea.engine.trainer.KNNTrainer
+  # params overwritten in run
+  model: null
+  train_loader: null
+  evaluator: null
+  exp_dir: null
+  device: null
+  n_epochs: 1
+  precision: fp32
+  use_wandb: ${use_wandb}
+  
+
+evaluator:
+  _target_: pangaea.engine.evaluator.KNNClassificationEvaluator
+  # params overwritten in run
+  val_loader: null
+  exp_dir: null
+  device: null
+  use_wandb: ${use_wandb}
+  inference_mode: null
+  sliding_inference_batch: null
+  multi_label: true
