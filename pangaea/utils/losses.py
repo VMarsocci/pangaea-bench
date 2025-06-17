@@ -4,6 +4,7 @@ from torch.nn import functional as F
 
 class WeightedCrossEntropy(torch.nn.Module):
     def __init__(self, ignore_index: int, distribution: list[float]) -> None:
+        super(WeightedCrossEntropy, self).__init__()
         # Initialize the weights based on the given distribution
         self.weights = [1 / w for w in distribution]
 
