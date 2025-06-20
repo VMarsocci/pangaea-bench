@@ -1,0 +1,35 @@
+_target_: pangaea.datasets.opencanopy.OpenCanopy
+dataset_name: OpenCanopy
+root_path: ./data/canopy_height
+download_url: 
+auto_download: True
+
+img_size: 667
+multi_temporal: False
+multi_modal: False
+
+ignore_index: -1
+num_classes: 1
+classes:
+  - regression
+distribution:
+  - 1.
+
+bands:
+  optical:
+    - B2
+    - B3
+    - B4
+    - B8
+
+data_mean:
+  optical: [124, 124, 124, 124]
+
+data_std:
+  optical: [124, 124, 124, 124]
+ 
+data_min:
+  optical: [0, 0, 0, 0]
+
+data_max:
+  optical: [255, 255, 255, 255]
