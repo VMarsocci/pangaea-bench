@@ -4,7 +4,7 @@
 </p>
 
 <p align="center">
-  <a href="https://arxiv.org/abs/2312.03048">
+  <a href="https://arxiv.org/abs/2412.04204">
     <img
       src="https://badgen.net/badge/paper/arXiv/red"
       alt="PANGAEA Paper"
