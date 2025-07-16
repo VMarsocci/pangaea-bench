@@ -151,7 +151,7 @@ def main(cfg: DictConfig) -> None:
     collate_fn = get_collate_fn(modalities)
 
     # training
-    if train_run or cfg.task.trainer.model_name == "knn_probe":
+    if train_run or cfg.task.trainer.model == "knn_probe":
         # get preprocessor
         train_preprocessor = instantiate(
             cfg.preprocessing.train,
