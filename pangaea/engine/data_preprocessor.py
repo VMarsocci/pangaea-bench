@@ -941,6 +941,44 @@ class RandomResizedCropToEncoder(RandomResizedCrop):
             size, scale, ratio, interpolation, antialias, resize_target, **meta
         )
 
+class ModalityDrop(BasePreprocessor):
+    def __init__(self, **meta) -> None:
+        """Intialize the ModalityDrop.
+        
+        Drop **encoder** modality if not in dataset (same as BandFilter, but for the encoder).
+
+        Args:
+            meta: statistics/info of the input data and target encoder
+                data_bands: bands of incoming data
+                encoder_bands: expected bands by encoder
+        """
+        super().__init__()
+
+        self.avail_modalities = []
+        for k in meta["encoder_bands"].keys():
+            if k in meta["data_bands"].keys():
+                self.avail_modalities.append(k)
+        
+        if not self.avail_modalities:
+            raise ValueError("No common input modalities after ModalityDrop!")
+                
+    
+    def __call__(
+        self, data: dict[str, torch.Tensor | dict[str, torch.Tensor]]
+    ) -> dict[str, torch.Tensor | dict[str, torch.Tensor]]:
+        """Drop **encoder** modality if not in dataset.
+        Args:
+        data (dict): input
+        """
+        return data
+    
+    def update_meta(self, meta):
+        """Tracking the meta statistics/info for next processor."""
+        meta["encoder_bands"] = {k: val 
+                                 for k, val in meta["encoder_bands"].items()
+                                 if k in self.avail_modalities}
+        return meta
+
 
 def _setup_size(size, error_msg):
     if isinstance(size, numbers.Number):

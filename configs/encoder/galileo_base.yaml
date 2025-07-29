@@ -1,0 +1,97 @@
+_target_: pangaea.encoders.galileo_encoder.galileo_base
+models_folder: ./pretrained_models/galileo/models/
+encoder_weights: ./pretrained_models/galileo/models/base/encoder.pt
+download_url: https://huggingface.co/nasaharvest/galileo/resolve/main/models/
+
+# For sizes other than 'base': see config in pretrained_modesl/galileo/[size]/config.json
+input_size: 80
+size: 'base'
+
+# These parameters are hard-coded for each model size in pangaea.encoders.galileo.gelileo_{base/nano/tiny}
+embed_dim: 768  # same as "embedding_size" from original implementation of Galileo Encoder
+# depth: 12
+# num_heads: 12
+# mlp_ratio: 4
+# max_sequence_length: 24
+freeze_projections: ${finetune}
+# drop_path: 0.1
+# max_patch_size: 8 
+do_pool: false
+
+data_bands: ${dataset.bands}
+data_gsd: 10. # ${dataset.gsd}
+
+input_bands:
+  optical:
+    - B1
+    - B2
+    - B3
+    - B4
+    - B5
+    - B6
+    - B7
+    - B8
+    - B8A
+    - B9
+    - B10
+    - B11
+    - B12
+  sar:
+    - VV
+    - VH
+  # Other modalities: not implemented yet
+  # era5:
+  #   - temperature_2m
+  #   - total_precipitation_sum
+  # tc:
+  #   - def
+  #   - soil
+  #   - aet
+  # viirs:
+  #   - avg_rad
+  # srtm:
+  #   - elevation
+  #   - slope
+  # dw:
+  #  - DW_water
+  #  - DW_trees
+  #  - DW_grass
+  #  - DW_flooded_vegetation
+  #  - DW_crops
+  #  - DW_shrub_and_scrub
+  #  - DW_built
+  #   "DW_bare",
+  #  - DW_snow_and_ice
+  # wc:
+  #   - WC_temporarycrops
+  #   - WC_maize
+  #   - WC_wintercereals
+  #   - WC_springcereals
+  #   - WC_irrigation
+
+token_exit_cfg: 
+  S1: 12
+  S2_RGB: 12
+  S2_Red_Edge: 12
+  S2_NIR_10m: 12
+  S2_NIR_20m: 12
+  S2_SWIR: 12
+  NDVI: 6
+  ERA5: 6
+  TC: 6
+  VIIRS: 12
+  SRTM: 6
+  DW: 0
+  WC: 0
+  LS: 0
+  location: 12
+  DW_static: 0
+  WC_static: 0
+
+output_layers: 
+  - 3
+  - 5
+  - 7
+  - 11
+
+output_dim: 768 
