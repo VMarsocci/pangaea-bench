@@ -1,0 +1,10 @@
+_target_: pangaea.encoders.timm_encoder.TimmEncoder
+timm_model_name: vit_large_patch16_dinov3.sat493m
+input_size: 512
+
+input_bands:
+  optical:
+    - B2
+    - B3
+    - B4
+
