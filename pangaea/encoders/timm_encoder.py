@@ -7,9 +7,6 @@ import timm
 from pangaea.encoders.base import Encoder
 
 
-torch.autograd.set_detect_anomaly(True)
-
-
 class TimmEncoder(Encoder):
     """Timm Encoder class."""
 
@@ -46,7 +43,7 @@ class TimmEncoder(Encoder):
 
         try:
             self.model = timm.create_model(
-                timm_model_name
+                timm_model_name,
                 pretrained=True,
                 features_only=True,
             )
