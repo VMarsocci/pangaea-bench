@@ -1,0 +1,33 @@
+_target_: pangaea.encoders.fm4cs_encoder.FM4CS_Encoder
+
+encoder_weights: ./pretrained_models/fm4cs_base_subset_contrast_flexivit_encoder_alibi_decoder_abs_embed_patch_dv6_wc_encoder.ckpt
+download_url: ""
+
+input_size: 108 # Can be any number as long as the ground cover is divisible by the patch size and GSD for each band
+                # I.e., 1080m / 60m GSD / 6 px patch size = 3
+# ground_cover: 1440 # m, Calculated automatically from the input size by assuming 10m resolution of the input data
+patch_size: 6 # Can be 4,6,8,10,12,16. Preferably 6
+ 
+input_bands:
+  optical:
+    - B1
+    - B2
+    - B3
+    - B4
+    - B5
+    - B6
+    - B7
+    - B8
+    - B8A
+    - B9
+    - B11
+    - B12
+  # sar:
+  #   - VV
+  #   - VH
+
+output_layers:
+  - 2
+  - 5
+  - 8
+  - 11

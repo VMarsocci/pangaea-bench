@@ -1,0 +1,34 @@
+_target_: pangaea.encoders.fm4cs_encoder.FM4CS_Encoder
+
+encoder_weights: ./pretrained_models/fm4cs_base_subset_contrast_flexivit_encoder_alibi_decoder_abs_embed_patch_dv6_wc_encoder.ckpt
+download_url: ""
+
+# Remove rigid input_size constraint for multi-resolution support
+# FM4CS will handle variable input sizes internally
+input_size: null  # Let FM4CS determine appropriate size based on actual data
+ground_cover: 6000  # 6km x 6km coverage area for SeaIce dataset
+patch_size: 6 # Can be 4,6,8,10,12,16. Preferably 6
+
+# input_size can be any number as long as the ground cover is divisible by the patch size and GSD for each band
+# I.e., 1080m / 60m GSD / 6 px patch size = 3
+ 
+input_bands:
+  optical:
+    # ONLY SeaIce Sentinel-3 SLSTR bands
+    - S1_reflectance_an
+    - S2_reflectance_an
+    - S3_reflectance_an
+    - S5_reflectance_an
+    - S6_reflectance_an
+    - S8_BT_in
+    - S9_BT_in
+  sar:
+    # ONLY SeaIce SAR bands
+    - EW-HH_250
+    - EW-HV_250
+
+output_layers:
+  - 2
+  - 5
+  - 8
+  - 11
