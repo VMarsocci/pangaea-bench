@@ -20,4 +20,5 @@ pytest
 yacs
 wandb
 hydra-core
-
+h5py
+albumentations
