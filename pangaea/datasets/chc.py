@@ -1,9 +1,15 @@
 import os
+import pathlib
+import time
+import urllib.request
+import urllib.error
+import zipfile
 import torch
 import numpy as np
 import pandas as pd
 import rasterio as rio
 from pangaea.datasets.base import RawGeoFMDataset
+from pangaea.datasets.utils import DownloadProgressBar
 from skimage.morphology import binary_erosion, disk
 from typing import Tuple, Union, List, Dict
 import json
@@ -308,7 +314,28 @@ class CHCDataset(RawGeoFMDataset):
 
         return return_dict
 
-    @staticmethod
-    def download(silent=False):
-        # Implement if your dataset requires downloading
-        pass
+    def download(self, silent=False):
+        output_path = pathlib.Path(self.root_path)
+        url = self.download_url
+
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        temp_file_name = f"temp_{hex(int(time.time()))}_CHC.zip"
+        pbar = DownloadProgressBar()
+
+        try:
+            urllib.request.urlretrieve(url, output_path / temp_file_name, pbar)
+        except urllib.error.HTTPError as e:
+            print('Error while downloading dataset: The server couldn\'t fulfill the request.')
+            print('Error code: ', e.code)
+            return
+        except urllib.error.URLError as e:
+            print('Error while downloading dataset: Failed to reach a server.')
+            print('Reason: ', e.reason)
+            return
+
+        with zipfile.ZipFile(output_path / temp_file_name, 'r') as zip_ref:
+            print(f"Extracting to {output_path} ...")
+            zip_ref.extractall(output_path)
+
+        (output_path / temp_file_name).unlink()
