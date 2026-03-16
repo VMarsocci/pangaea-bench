@@ -84,7 +84,7 @@ class CHCDataset(RawGeoFMDataset):
         assert multi_temporal == 6
         assert all(m in ['veg', 'z_value'] for m in masking)
         assert weighting in ['none', 'var_inv', 'z_cutoff']
-        assert img_merging in ['first', 'random', 'avg']
+        assert img_merging in ['first', 'random', 'mean']
 
         self.img_merging = img_merging
         self.patch_size = 1024 # size of CHC patches, change if other image resolution used (e.g., Sentinel-2, 10m)
@@ -142,7 +142,7 @@ class CHCDataset(RawGeoFMDataset):
             sample_df = sample_df.groupby('year').first().reset_index()
         elif img_selection == 'random':
             sample_df = sample_df.groupby('year').sample(n=1, random_state=None).reset_index(drop=True)
-        elif img_selection == 'avg':
+        elif img_selection == 'mean':
             pass # averaging will be done in _get_img anyways
 
         # fill gaps if less years are available than multi_temporal
