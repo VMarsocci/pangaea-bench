@@ -1,0 +1,40 @@
+_target_: pangaea.encoders.prithvi2_encoder.Prithvi2_Encoder
+encoder_weights: ./pretrained_models/Prithvi/Prithvi-EO-2.0-300M-TL/Prithvi_EO_V2_300M_TL.pt
+download_url: https://huggingface.co/ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL/resolve/main/Prithvi_EO_V2_300M_TL.pt
+
+# Model architecture parameters (300M)
+embed_dim: 1024
+# img_size: 224
+input_size: 224 # Required by data preprocessor
+in_chans: 6
+patch_size: [1, 16, 16]
+num_heads: 16
+depth: 24
+mlp_ratio: 4
+drop_path: 0.1
+
+# Multi-temporal configuration  
+num_frames: ${dataset.multi_temporal}
+
+# Coordinate encoding (optional)
+coords_encoding: null
+coords_scale_learn: false
+
+# Input bands configuration
+input_bands:
+  optical:
+    - B2
+    - B3
+    - B4
+    - B8A
+    - B11
+    - B12
+
+# Output configuration
+output_layers:
+  - 5
+  - 11
+  - 17
+  - 23
+
+output_dim: 1024
