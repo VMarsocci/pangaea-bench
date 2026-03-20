@@ -40,6 +40,23 @@
  - [22/04/2025] on EarthDay, PANGAEA was officialy adopted to benchmark TerraMind. Read the [news](https://www.linkedin.com/posts/simonetta-cheli-7669879b_earthday-earthobservation-activity-7320439907028467712-LSzl?utm_source=share&utm_medium=member_desktop&rcm=ACoAACdT8q0BDNWYKAdDYGUe_X4fQOzSHO8jgAs) and the [pre-print](https://arxiv.org/abs/2504.11171). We will release the benchmarking code in PANGAEA very soon!
  - [05/12/2024] the [pre-print](https://arxiv.org/abs/2412.04204) is out!
 
+## 🆕 Local updates in this fork (March 2026)
+
+This repository includes additional local extensions for experimentation:
+
+- **New encoder configs**
+   - THOR encoder: `configs/encoder/thor.yaml`
+   - Prithvi-2 variants: `configs/encoder/prithvi2_100m.yaml`, `configs/encoder/prithvi2_300m.yaml`, `configs/encoder/prithvi2_600m.yaml`
+
+- **New LAI dataset integration**
+   - Dataset class: `pangaea/datasets/lai.py`
+   - Dataset configs: all `configs/dataset/lai*.yaml` variants (single/dual S1-S2 and site-specific configs)
+
+- **Cross-testing support**
+   - Wrapper CLI: `cross_test.py`
+   - Test-time cross-dataset override support in `pangaea/run.py` and `configs/test.yaml`
+   - New test overrides: `cross_test_dataset`, `cross_test_root_path`, `cross_test_preprocessing`, `test_log_name`
+
 ## 📚 Introduction
 
 While geospatial foundation models (GFMs) have proliferated rapidly, their evaluations remain inconsistent and narrow. Existing works often utilize suboptimal downstream datasets (e.g., EuroSAT) and tasks (e.g., land cover classification), which constrain comparability and real-world usability. Additionally, a lack of diversity in evaluation protocols, including image resolution and sensor types, further complicates the extensive assessments of GFM performance. 
@@ -411,6 +428,32 @@ If you want to just run an evaluation, indicate the `ckpt_dir` where the checkpo
 ```
 torchrun pangaea/run.py --config-name=test ckpt_dir=path_to_ckpt_dir
 ```
+
+### 🔁 Cross-testing on a different dataset
+
+You can evaluate a trained checkpoint directory on another dataset config without changing the original training config.
+
+Generic command:
+```
+python3 cross_test.py \
+   --ckpt-dir /path/to/experiment_dir \
+   --target-dataset lai_s1s2_cangio \
+   --dataset-root ./data/LAI/CanGio_S1S22024/test \
+   --nnodes 1 \
+   --nproc-per-node 1 \
+   --test-log-name test_cangio.log \
+   save_predictions=false save_visualizations=false
+```
+
+Concrete example:
+```
+python3 cross_test.py --ckpt-dir /shared/home/vmarsocci/pangaea-bench2.0/data/results/LAI/Mekong/20260226_060952_b3561b_croma_joint_reg_upernet_lai_s1s2_mekong --target-dataset lai_s1s2_cangio --dataset-root ./data/LAI/CanGio_S1S22024/test --nnodes 1 --nproc-per-node 1 --test-log-name test_cangio.log save_predictions=false save_visualizations=false
+```
+
+Notes:
+- `--target-dataset` must match a yaml name in `configs/dataset/`.
+- `--dataset-root` can be used to point to the target split directory (e.g. `.../test`).
+- Any extra Hydra overrides can be appended at the end of the command.
 
 ## ✏️ Contributing
 We appreciate all contributions. Please refer to [Contributing Guidelines](CONTRIBUTING.md).
