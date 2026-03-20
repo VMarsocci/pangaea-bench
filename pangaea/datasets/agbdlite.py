@@ -78,6 +78,14 @@ class AGBDLite(RawGeoFMDataset):
         eval_big: bool, 
         lite_chunk_size: int
     ):
+        assert split in ['train', 'val', 'test'], "split must be one of 'train', 'val', or 'test'"
+        self.mode = split
+        self.eval_big = eval_big
+        self.target = target
+        self.lite_chunk_size = lite_chunk_size
+        self.patch_size = img_size
+        self.zenodo_record = "18485030"
+
         super(AGBDLite, self).__init__(
             split=split,
             dataset_name=dataset_name,
@@ -98,13 +106,6 @@ class AGBDLite(RawGeoFMDataset):
             auto_download=auto_download,
         )
 
-        assert split in ['train', 'val', 'test'], "split must be one of 'train', 'val', or 'test'"
-        self.mode = split
-        self.eval_big = eval_big
-        self.target = target
-        self.lite_chunk_size = lite_chunk_size
-        self.patch_size = img_size
-        self.zenodo_record = "18485030"
         if auto_download: self.download(self)
 
         self.s2_bands = ['B01', 'B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B09', 'B11', 'B12']

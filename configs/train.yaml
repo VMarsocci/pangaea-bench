@@ -1,5 +1,5 @@
 train: true
-work_dir: ""
+work_dir: "./data/results/"
 seed: 234
 use_wandb: false
 wandb_run_id: null
