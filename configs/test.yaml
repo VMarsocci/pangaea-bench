@@ -13,4 +13,10 @@ use_final_ckpt: false
 finetune: false
 ckpt_dir: ???
 
+# Optional cross-testing overrides
+cross_test_dataset: null
+cross_test_root_path: null
+cross_test_preprocessing: null
+test_log_name: null
+
 

@@ -1,0 +1,54 @@
+# Example: Only predict LAI
+_target_: pangaea.datasets.lai.LAI
+dataset_name: LAI_only
+root_path: ./data/LAI/full2024
+download_url: 
+auto_download: False
+img_size: 256
+multi_temporal: 1
+multi_modal: True
+
+# Input modalities (satellite imagery)
+modalities:
+  - SENTINEL2
+  - SENTINEL1
+
+# Only LAI as target
+ignore_index: -1
+num_classes: 1  # Only LAI
+classes:
+  - LAI
+distribution:
+  - 1.0
+
+# Define bands for input modalities
+bands:
+  optical:
+    - B1  # Coastal aerosol
+    - B2  # Blue
+    - B3  # Green
+    - B4  # Red
+    - B5  # Red Edge 1
+    - B6  # Red Edge 2
+    - B7  # Red Edge 3
+    - B8  # NIR
+    - B8A  # Red Edge 4
+    - B11  # SWIR 1
+    - B12  # SWIR 2
+  sar:
+    - VH   # Vertical-Vertical polarization
+    - VV   # Vertical-Horizontal polarization
+
+# Normalization values for INPUT modalities only
+data_mean:
+  optical: [0.055664, 0.066319, 0.090903, 0.088250, 0.137602, 0.236486, 0.280760, 0.285793, 0.305049, 0.307002, 0.234007, 0.151950] #B01-B02-B03-B04-B05-B06-B07-B08-B8A-B11-B12
+  sar: [0.034995, 0.168914] #VH-VV
+data_std:
+  optical: [0.044570, 0.051058, 0.051917, 0.067850, 0.065297, 0.085118, 0.103032, 0.109332, 0.114471, 0.119537, 0.108862, 0.097000] #B01-B02-B03-B04-B05-B06-B07-B08-B8A-B11-B12
+  sar: [0.233596, 2.596703] #VH-VV
+data_min:
+  optical: [-0.029600, -0.100000, -0.100000, -0.021700, -0.031200, -0.062900, -0.075250, -0.100000, -0.068850, -0.054000, -0.012300, -0.005000] #B1-B2-B3-B4-B5-B6-B7-B8-B8A-B9-B10-B11-B12
+  sar: [0.000000, 0.000000] #VH-VV
+data_max:
+  optical: [1.54820, 2.16880, 1.98960, 1.85120, 1.60370, 1.58000, 1.56820, 1.73195, 1.55460, 1.70440, 1.51420, 1.53690] #B1-B2-B3-B4-B5-B6-B7-B8-B8A-B9-B10-B11-B12
+  sar: [187.845703, 807.440211] #VH-VV
