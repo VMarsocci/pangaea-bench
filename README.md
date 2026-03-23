@@ -429,6 +429,45 @@ If you want to just run an evaluation, indicate the `ckpt_dir` where the checkpo
 torchrun pangaea/run.py --config-name=test ckpt_dir=path_to_ckpt_dir
 ```
 
+### 🖼️ Prediction visualization outputs
+
+You can save raw predictions and/or PNG comparison panels during evaluation.
+
+Available Hydra overrides:
+- `save_predictions` (bool): save raw output maps as `.tif`
+- `save_visualizations` (bool): save comparison panels as `.png`
+- `save_output_dir` (str or null): output root (defaults to experiment dir)
+- `max_samples_to_visualize` (int): max number of samples to save (`-1` = all)
+- `overwrite` (bool): when `false`, outputs are written in a step-tagged subfolder (e.g. `final_model`, `test_model`)
+- `task.evaluator.rgb_bands` (list): channel indices used for RGB quicklook (default `[2, 1, 0]`)
+
+Output structure:
+- `<save_output_dir>/predictions/*.tif`
+- `<save_output_dir>/visualizations/*.png`
+
+Test-only example:
+```
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=test \
+   ckpt_dir=/path/to/experiment_dir \
+   save_predictions=true \
+   save_visualizations=true \
+   save_output_dir=/path/to/output_dir \
+   max_samples_to_visualize=100 \
+   overwrite=true
+```
+
+Train+eval example (validation visualizations during training):
+```
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=hlsburnscars encoder=remoteclip decoder=seg_upernet \
+   preprocessing=seg_default criterion=cross_entropy task=segmentation \
+   task.evaluator.save_predictions=true \
+   task.evaluator.save_visualizations=true \
+   task.evaluator.max_samples_to_visualize=50
+```
+
 ### 🔁 Cross-testing on a different dataset
 
 You can evaluate a trained checkpoint directory on another dataset config without changing the original training config.
