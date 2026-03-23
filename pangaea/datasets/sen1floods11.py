@@ -155,6 +155,7 @@ class Sen1Floods11(RawGeoFMDataset):
         return date_np
 
     def __getitem__(self, index):
+        filename = os.path.basename(self.s2_image_list[index])
         with rasterio.open(self.s2_image_list[index]) as src:
             s2_image = src.read()
 
@@ -179,6 +180,7 @@ class Sen1Floods11(RawGeoFMDataset):
             },
             "target": target,
             "metadata": {
+                "filename": filename,
                 "timestamp": timestamp,
             },
         }

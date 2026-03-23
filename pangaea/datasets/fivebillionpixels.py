@@ -112,6 +112,7 @@ class FiveBillionPixels(RawGeoFMDataset):
         return len(self._image_dir)
 
     def __getitem__(self, index):
+        filename = os.path.basename(self._image_dir[index])
         if self.use_cmyk:
             image = Image.open(self._image_dir[index]).convert("CMYK")
             image = TF.pil_to_tensor(image)
@@ -133,7 +134,7 @@ class FiveBillionPixels(RawGeoFMDataset):
                 "optical": image,
             },
             "target": target,
-            "metadata": {},
+            "metadata": {"filename": filename},
         }
 
         return output

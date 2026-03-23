@@ -311,7 +311,10 @@ class LAI(RawGeoFMDataset):
         target = torch.from_numpy(target).float()
         
         # Metadata
+        primary_modality = self.modalities[0]
+        filename = f"{primary_modality}_patch_256px_{patch_id}.tif"
         metadata = {
+            'filename': filename,
             'patch_id': patch_id,
             'input_modalities': self.modalities,
             'target_modalities': self.target_modalities,

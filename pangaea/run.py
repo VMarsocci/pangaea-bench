@@ -118,6 +118,11 @@ def main(cfg: DictConfig) -> None:
             "test_batch_size",
             "test_num_workers",
             "test_log_name",
+            "save_predictions",
+            "save_visualizations",
+            "save_output_dir",
+            "max_samples_to_visualize",
+            "overwrite",
         ]:
             if key in test_cfg:
                 cfg[key] = test_cfg[key]
@@ -335,7 +340,15 @@ def main(cfg: DictConfig) -> None:
         collate_fn=collate_fn,
     )
     test_evaluator: Evaluator = instantiate(
-        cfg.task.evaluator, val_loader=test_loader, exp_dir=exp_dir, device=device
+        cfg.task.evaluator,
+        val_loader=test_loader,
+        exp_dir=exp_dir,
+        device=device,
+        save_predictions=cfg.get("save_predictions", False),
+        save_visualizations=cfg.get("save_visualizations", False),
+        save_output_dir=cfg.get("save_output_dir", None) or str(exp_dir),
+        max_samples_to_visualize=cfg.get("max_samples_to_visualize", -1),
+        overwrite=cfg.get("overwrite", True),
     )
 
     if cfg.use_final_ckpt:

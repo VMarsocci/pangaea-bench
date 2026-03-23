@@ -142,6 +142,7 @@ class MADOS(RawGeoFMDataset):
         return self.ROIs_split
 
     def __getitem__(self, index):
+        filename = os.path.basename(self.target_list[index])
 
         all_bands = self.image_list[index]
         current_image = []
@@ -173,7 +174,7 @@ class MADOS(RawGeoFMDataset):
                 'optical': image,
             },
             'target': target,
-            'metadata': {}
+            'metadata': {'filename': filename}
         }
 
         return output

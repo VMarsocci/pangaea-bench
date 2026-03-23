@@ -196,6 +196,7 @@ class AGBDLite(RawGeoFMDataset):
         # Metadata (if needed) --------------------------------------------------------------------
         region = torch.from_numpy(np.array(f['GEDI']['region_cla'][idx_start : idx_end]))
         biome = lc[:, self.patch_size // 2, self.patch_size // 2]
+        filename = f"{self.fname}_chunk_{idx_start:08d}_{idx_end:08d}"
 
         # Convert to tensors and return -----------------------------------------------------------
         sr_bands = torch.from_numpy(sr_bands).float()
@@ -217,6 +218,7 @@ class AGBDLite(RawGeoFMDataset):
                 },
             'target': target,
             'metadata': {
+                'filename': filename,
                 'region': region,
                 'biome': biome
             }

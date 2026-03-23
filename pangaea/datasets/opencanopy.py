@@ -132,7 +132,7 @@ class OpenCanopy(RawGeoFMDataset):
                 "optical": rgbir.to(torch.float).unsqueeze(1),
             },
             "target": canopy_height.to(torch.float),
-            "metadata": {},
+            "metadata": {"filename": filename},
         }
 
     def __len__(self) -> int:

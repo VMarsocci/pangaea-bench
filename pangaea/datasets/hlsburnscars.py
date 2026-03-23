@@ -151,6 +151,7 @@ class HLSBurnScars(RawGeoFMDataset):
         return len(self.image_list)
 
     def __getitem__(self, index):
+        filename = pathlib.Path(self.image_list[index]).name
         image = tiff.imread(self.image_list[index])
         image = image.astype(np.float32)  # Convert to float32
         image = torch.from_numpy(image).permute(2, 0, 1)
@@ -169,7 +170,7 @@ class HLSBurnScars(RawGeoFMDataset):
                 "optical": image,
             },
             "target": target,
-            "metadata": {},
+            "metadata": {"filename": filename},
         }
 
         return output

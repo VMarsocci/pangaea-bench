@@ -209,8 +209,9 @@ class CropTypeMappingSouthSudan(RawGeoFMDataset):
         if self.use_pad:
             s1 = self.pad_or_crop(s1)
             s2 = self.pad_or_crop(s2)
-        
-        return {'sar': s1, 'optical': s2}
+
+        filename = f'{self.country}_{loc_id}.npz'
+        return {'sar': s1, 'optical': s2, 'filename': filename}
     
     def pad_or_crop(self, tensor):
         '''
