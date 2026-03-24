@@ -22,6 +22,7 @@ logger = logging.getLogger(__name__)
 # Internal helpers
 # ---------------------------------------------------------------------------
 
+
 def _build_colormap(num_classes: int) -> np.ndarray:
     """Return an (N, 3) uint8 colour table for *num_classes* class indices."""
     cmap = plt.cm.get_cmap("tab20", max(num_classes, 1))
@@ -107,6 +108,7 @@ def _get_sample_name(metadata: Any, global_idx: int) -> str:
 # Main visualizer class
 # ---------------------------------------------------------------------------
 
+
 class PredictionVisualizer:
     """Handles saving of raw predictions (GeoTIFF) and visual panels (PNG).
 
@@ -162,12 +164,18 @@ class PredictionVisualizer:
                 self.vis_root.mkdir(parents=True, exist_ok=True)
 
     def set_step_tag(self, tag: str) -> None:
-        """Set current save tag (e.g. epoch_000, final_model, test_model)."""
+        """Set current save tag (e.g. epoch_000, final_model, test_model).
+
+        Resets the saved-sample counter so that each new epoch gets a fresh
+        budget of ``max_samples``.  Combined with ``overwrite=True``, this
+        ensures only the last epoch's files are kept on disk.
+        """
         if not tag:
             self.current_tag = "latest"
-            return
-        clean = str(tag).strip().replace(" ", "_")
-        self.current_tag = clean or "latest"
+        else:
+            clean = str(tag).strip().replace(" ", "_")
+            self.current_tag = clean or "latest"
+        self.saved_count = 0
 
     def _resolve_output_dir(self, base_dir: Optional[Path]) -> Optional[Path]:
         if base_dir is None:
@@ -257,14 +265,19 @@ class PredictionVisualizer:
                     for i in range(min(num_classes, len(lut)))
                 ]
                 fig.legend(
-                    handles, labels,
-                    loc="lower center", ncol=min(6, len(labels)),
-                    bbox_to_anchor=(0.5, -0.05), fontsize=7,
+                    handles,
+                    labels,
+                    loc="lower center",
+                    ncol=min(6, len(labels)),
+                    bbox_to_anchor=(0.5, -0.05),
+                    fontsize=7,
                 )
 
             fig.tight_layout()
             if vis_dir is not None:
-                fig.savefig(str(vis_dir / f"{sample_name}.png"), dpi=100, bbox_inches="tight")
+                fig.savefig(
+                    str(vis_dir / f"{sample_name}.png"), dpi=100, bbox_inches="tight"
+                )
             plt.close(fig)
 
         self.saved_count += 1
@@ -355,7 +368,9 @@ class PredictionVisualizer:
 
             fig.tight_layout()
             if vis_dir is not None:
-                fig.savefig(str(vis_dir / f"{sample_name}.png"), dpi=100, bbox_inches="tight")
+                fig.savefig(
+                    str(vis_dir / f"{sample_name}.png"), dpi=100, bbox_inches="tight"
+                )
             plt.close(fig)
 
         self.saved_count += 1
@@ -402,7 +417,9 @@ class PredictionVisualizer:
             ax.axis("off")
             fig.tight_layout()
             if vis_dir is not None:
-                fig.savefig(str(vis_dir / f"{sample_name}.png"), dpi=100, bbox_inches="tight")
+                fig.savefig(
+                    str(vis_dir / f"{sample_name}.png"), dpi=100, bbox_inches="tight"
+                )
             plt.close(fig)
 
         self.saved_count += 1
