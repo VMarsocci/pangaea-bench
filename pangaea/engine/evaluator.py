@@ -60,6 +60,7 @@ class Evaluator:
             max_samples_to_visualize: int = -1,
             rgb_bands: list[int] | None = None,
             overwrite: bool = True,
+            vizus_to_wandb: bool = True,
     ) -> None:
         self.rank = int(os.environ["RANK"])
         self.val_loader = val_loader
@@ -91,6 +92,8 @@ class Evaluator:
             rgb_bands=tuple(rgb_bands) if rgb_bands is not None else (2, 1, 0),
             rank=self.rank,
             overwrite=overwrite,
+            use_wandb=use_wandb,
+            vizus_to_wandb=vizus_to_wandb,
         )
 
     def evaluate(
@@ -178,11 +181,12 @@ class LinearClassificationEvaluator(Evaluator):
         max_samples_to_visualize: int = -1,
         rgb_bands: list[int] | None = None,
         overwrite: bool = True,
+        vizus_to_wandb: bool = True,
     ) -> None:
         super().__init__(
             val_loader, exp_dir, device, inference_mode, sliding_inference_batch,
             use_wandb, save_predictions, save_visualizations, save_output_dir,
-            max_samples_to_visualize, rgb_bands, overwrite,
+            max_samples_to_visualize, rgb_bands, overwrite, vizus_to_wandb,
         )
         self.multi_label = multi_label
         self.topk = topk
@@ -474,11 +478,12 @@ class SegEvaluator(Evaluator):
             max_samples_to_visualize: int = -1,
             rgb_bands: list[int] | None = None,
             overwrite: bool = True,
+            vizus_to_wandb: bool = True,
     ):
         super().__init__(
             val_loader, exp_dir, device, inference_mode, sliding_inference_batch,
             use_wandb, save_predictions, save_visualizations, save_output_dir,
-            max_samples_to_visualize, rgb_bands, overwrite,
+            max_samples_to_visualize, rgb_bands, overwrite, vizus_to_wandb,
         )
 
     @torch.no_grad()
@@ -704,11 +709,12 @@ class RegEvaluator(Evaluator):
             max_samples_to_visualize: int = -1,
             rgb_bands: list[int] | None = None,
             overwrite: bool = True,
+            vizus_to_wandb: bool = True,
     ):
         super().__init__(
             val_loader, exp_dir, device, inference_mode, sliding_inference_batch,
             use_wandb, save_predictions, save_visualizations, save_output_dir,
-            max_samples_to_visualize, rgb_bands, overwrite,
+            max_samples_to_visualize, rgb_bands, overwrite, vizus_to_wandb,
         )
 
     @torch.no_grad()

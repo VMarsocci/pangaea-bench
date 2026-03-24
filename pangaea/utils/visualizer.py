@@ -142,6 +142,8 @@ class PredictionVisualizer:
         rgb_bands: Sequence[int] = (2, 1, 0),
         rank: int = 0,
         overwrite: bool = True,
+        use_wandb: bool = False,
+        vizus_to_wandb: bool = True,
     ) -> None:
         self.save_predictions = save_predictions
         self.save_visualizations = save_visualizations
@@ -149,6 +151,8 @@ class PredictionVisualizer:
         self.rgb_bands = tuple(int(b) for b in rgb_bands)
         self.rank = rank
         self.overwrite = overwrite
+        self.use_wandb = use_wandb
+        self.vizus_to_wandb = vizus_to_wandb
         self.saved_count = 0
         self.current_tag = "latest"
 
@@ -279,6 +283,12 @@ class PredictionVisualizer:
                 fig.savefig(
                     str(vis_dir / f"{sample_name}.png"), dpi=100, bbox_inches="tight"
                 )
+            if self.use_wandb and self.vizus_to_wandb:
+                import wandb
+
+                wandb.log(
+                    {f"seg_predictions/{sample_name}": wandb.Image(fig)}, commit=False
+                )
             plt.close(fig)
 
         self.saved_count += 1
@@ -372,6 +382,12 @@ class PredictionVisualizer:
                 fig.savefig(
                     str(vis_dir / f"{sample_name}.png"), dpi=100, bbox_inches="tight"
                 )
+            if self.use_wandb and self.vizus_to_wandb:
+                import wandb
+
+                wandb.log(
+                    {f"reg_predictions/{sample_name}": wandb.Image(fig)}, commit=False
+                )
             plt.close(fig)
 
         self.saved_count += 1
@@ -420,6 +436,12 @@ class PredictionVisualizer:
             if vis_dir is not None:
                 fig.savefig(
                     str(vis_dir / f"{sample_name}.png"), dpi=100, bbox_inches="tight"
+                )
+            if self.use_wandb and self.vizus_to_wandb:
+                import wandb
+
+                wandb.log(
+                    {f"cls_predictions/{sample_name}": wandb.Image(fig)}, commit=False
                 )
             plt.close(fig)
 
