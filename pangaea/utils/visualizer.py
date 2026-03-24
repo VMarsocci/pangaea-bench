@@ -100,7 +100,8 @@ def _get_sample_name(metadata: Any, global_idx: int) -> str:
         for key in ("filename", "patch_id", "sample_id", "id", "tile_id", "chip_id"):
             val = metadata.get(key)
             if val is not None:
-                return str(val)
+                # Strip extension from filename-like values
+                return Path(str(val)).stem
     return f"sample_{global_idx:05d}"
 
 
