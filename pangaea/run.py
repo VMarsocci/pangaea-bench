@@ -13,6 +13,7 @@ from omegaconf import DictConfig, OmegaConf
 from torch.utils.data import DataLoader
 from torch.utils.data.distributed import DistributedSampler
 
+from pangaea.conf.schema import PangaeaConfig
 from pangaea.datasets.base import GeoFMDataset, GeoFMSubset, RawGeoFMDataset
 from pangaea.decoders.base import Decoder
 from pangaea.encoders.base import Encoder
@@ -66,6 +67,11 @@ def main(cfg: DictConfig) -> None:
     Args:
         cfg (DictConfig): main_config
     """
+    _schema = OmegaConf.structured(PangaeaConfig)
+    OmegaConf.merge(
+        _schema, OmegaConf.masked_copy(cfg, [k for k in _schema if k in cfg])
+    )
+
     # fix all random seeds
     fix_seed(cfg.seed)
     # distributed training variables
@@ -262,7 +268,6 @@ def main(cfg: DictConfig) -> None:
 
         trainer.train()
 
-    
     # Evaluation
     test_preprocessor = instantiate(
         cfg.preprocessing.test,
@@ -293,10 +298,10 @@ def main(cfg: DictConfig) -> None:
         model_ckpt_path = get_final_model_ckpt_path(exp_dir)
     else:
         model_ckpt_path = get_best_model_ckpt_path(exp_dir)
-        
+
     if model_ckpt_path is None and not cfg.task.trainer.model_name == "knn_probe":
         raise ValueError(f"No model checkpoint found in {exp_dir}")
-    
+
     test_evaluator.evaluate(decoder, "test_model", model_ckpt_path)
 
     if cfg.use_wandb and rank == 0:
