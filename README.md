@@ -470,28 +470,30 @@ torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
 
 ### 🔁 Cross-testing on a different dataset
 
-You can evaluate a trained checkpoint directory on another dataset config without changing the original training config.
+You can evaluate a trained checkpoint directory on another dataset config without changing the original training config, by simply overriding the dataset config from the command line.
 
-Generic command:
+Simple command to cross-evaluate a model on sen1floods11:
 ```
-python3 cross_test.py \
-   --ckpt-dir /path/to/experiment_dir \
-   --target-dataset lai_s1s2_cangio \
-   --dataset-root ./data/LAI/CanGio_S1S22024/test \
-   --nnodes 1 \
-   --nproc-per-node 1 \
-   --test-log-name test_cangio.log \
-   save_predictions=false save_visualizations=false
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=test \
+   ckpt_dir=/path/to/experiment_dir \
+   dataset=sen1floods11
 ```
 
-Concrete example:
+Example with more options (overriding datset, preprocessing and root_path):
 ```
-python3 cross_test.py --ckpt-dir /shared/home/vmarsocci/pangaea-bench2.0/data/results/LAI/Mekong/20260226_060952_b3561b_croma_joint_reg_upernet_lai_s1s2_mekong --target-dataset lai_s1s2_cangio --dataset-root ./data/LAI/CanGio_S1S22024/test --nnodes 1 --nproc-per-node 1 --test-log-name test_cangio.log save_predictions=false save_visualizations=false
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=test \
+   ckpt_dir=/path/to/experiment_dir \
+   dataset=sen1floods11 \
+   preprocessing=seg_resize \
+   root_path=alternative/path/to/dataset \
+   save_predictions=true \
+   test_log_name=test_sen1.log \
+   save_visualizations=true
 ```
 
 Notes:
-- `--target-dataset` must match a yaml name in `configs/dataset/`.
-- `--dataset-root` can be used to point to the target split directory (e.g. `.../test`).
 - Any extra Hydra overrides can be appended at the end of the command.
 
 ## ✏️ Contributing

@@ -128,30 +128,15 @@ def main(cfg: DictConfig) -> None:
                 cfg[key] = test_cfg[key]
 
         # optional cross-testing: evaluate checkpoint on another dataset or preprocessing
-        config_root = pathlib.Path(__file__).resolve().parents[1] / "configs"
-        cross_test_dataset = test_cfg.get("cross_test_dataset")
+        cross_test_dataset = test_cfg.get("dataset")
         if cross_test_dataset:
-            dataset_cfg_path = config_root / "dataset" / f"{cross_test_dataset}.yaml"
-            if not dataset_cfg_path.exists():
-                raise ValueError(
-                    f"Dataset config not found: {dataset_cfg_path}. "
-                    "Check cross_test_dataset."
-                )
-            cfg.dataset = OmegaConf.load(dataset_cfg_path)
+            cfg.dataset = cross_test_dataset
 
-        cross_test_preprocessing = test_cfg.get("cross_test_preprocessing")
+        cross_test_preprocessing = test_cfg.get("preprocessing")
         if cross_test_preprocessing:
-            preprocessing_cfg_path = (
-                config_root / "preprocessing" / f"{cross_test_preprocessing}.yaml"
-            )
-            if not preprocessing_cfg_path.exists():
-                raise ValueError(
-                    f"Preprocessing config not found: {preprocessing_cfg_path}. "
-                    "Check cross_test_preprocessing."
-                )
-            cfg.preprocessing = OmegaConf.load(preprocessing_cfg_path)
+            cfg.preprocessing = cross_test_preprocessing
 
-        cross_test_root_path = test_cfg.get("cross_test_root_path")
+        cross_test_root_path = test_cfg.get("root_path")
         if cross_test_root_path:
             cfg.dataset.root_path = cross_test_root_path
 
@@ -316,7 +301,6 @@ def main(cfg: DictConfig) -> None:
 
         trainer.train()
 
-    
     # Evaluation
     test_preprocessor = instantiate(
         cfg.preprocessing.test,
@@ -355,10 +339,10 @@ def main(cfg: DictConfig) -> None:
         model_ckpt_path = get_final_model_ckpt_path(exp_dir)
     else:
         model_ckpt_path = get_best_model_ckpt_path(exp_dir)
-        
+
     if model_ckpt_path is None and not cfg.task.trainer.model_name == "knn_probe":
         raise ValueError(f"No model checkpoint found in {exp_dir}")
-    
+
     test_evaluator.evaluate(decoder, "test_model", model_ckpt_path)
 
     if cfg.use_wandb and rank == 0:
