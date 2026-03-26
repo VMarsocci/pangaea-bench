@@ -33,6 +33,7 @@ class Sen1Floods11(RawGeoFMDataset):
         download_url: str,
         auto_download: bool,
         gcs_bucket: str,
+        locations: list[str] | None = None,
     ):
         """Initialize the Sen1Floods11 dataset.
         Link: https://github.com/cloudtostreet/Sen1Floods11
@@ -64,6 +65,10 @@ class Sen1Floods11(RawGeoFMDataset):
             download_url (str): url to download the dataset.
             auto_download (bool): whether to download the dataset automatically.
             gcs_bucket (str): subset for downloading the dataset.
+            locations (list[str] | None): list of geographic locations to include
+            (e.g. ["Spain", "USA"]). If None, all locations are used.
+            Valid values: Bolivia, Ghana, India, Mekong, Nigeria, Pakistan,
+            Paraguay, Somalia, Spain, Sri-Lanka, USA.
         """
 
         self.gcs_bucket = gcs_bucket
@@ -124,6 +129,14 @@ class Sen1Floods11(RawGeoFMDataset):
             file_list = f.readlines()
 
         file_list = [f.rstrip().split(",") for f in file_list]
+
+        if locations is not None:
+            locations_set = set(locations)
+            file_list = [
+                f
+                for f in file_list
+                if os.path.basename(f[0]).split("_")[0] in locations_set
+            ]
 
         self.s1_image_list = [
             os.path.join(data_root, "S1Hand", f[0]) for f in file_list

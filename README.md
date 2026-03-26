@@ -493,6 +493,26 @@ torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
    save_visualizations=true
 ```
 
+Concrete example: training on Sen1Floods11 only on Europe and America tiles, testing on Asia and Africa.
+```
+# training on euramerica
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py --config-name=train \
+    dataset=sen1floods11_euramerica \
+    encoder=terramind_tiny \
+    decoder=seg_upernet \
+    preprocessing=seg_default \
+    criterion=dice \
+    task=segmentation \
+    finetune=False
+
+# testing on africa
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py --config-name=test \
+    ckpt_dir=work-dir/20260324_142305_0589a0_terramind_tiny_seg_upernet_sen1floods11_euramerica \
+    cross_test_dataset=sen1floods11_africa \
+    save_visualizations=true
+```
+
+
 Notes:
 - Any extra Hydra overrides can be appended at the end of the command.
 
