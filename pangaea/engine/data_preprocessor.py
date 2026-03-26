@@ -248,7 +248,7 @@ class BandPadding(BasePreprocessor):
                     self.used_bands_indices[k]
                 ]
             else:
-                reference = data["image"](list(data["image"].keys())[0])
+                reference = data["image"][list(data["image"].keys())[0]]
                 size = self.avail_bands_mask[k].shape + reference.shape[1:]
                 padded_image = torch.full(
                     size, fill_value=self.fill_value, dtype=reference.dtype
