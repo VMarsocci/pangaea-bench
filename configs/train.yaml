@@ -2,6 +2,8 @@ train: true
 work_dir: "./data/results/"
 seed: 234
 use_wandb: false
+wandb_offline: false
+wandb_offline_sync_communication_dir: "/path/to/your/.wandb-osh"
 wandb_run_id: null
 
 # TRAINING

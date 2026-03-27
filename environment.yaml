@@ -30,6 +30,7 @@ dependencies:
   - pytest
   - yacs
   - wandb
+  - wandb-osh
   - hydra-core
   - h5py
   - albumentations

@@ -46,21 +46,23 @@ class Evaluator:
     """
 
     def __init__(
-            self,
-            val_loader: DataLoader,
-            exp_dir: str | Path,
-            device: torch.device,
-            inference_mode: str = 'sliding',
-            sliding_inference_batch: int = None,
-            use_wandb: bool = False,
-            # ---- visualization flags ----
-            save_predictions: bool = False,
-            save_visualizations: bool = False,
-            save_output_dir: str | Path | None = None,
-            max_samples_to_visualize: int = -1,
-            rgb_bands: list[int] | None = None,
-            overwrite: bool = True,
-            vizus_to_wandb: bool = True,
+        self,
+        val_loader: DataLoader,
+        exp_dir: str | Path,
+        device: torch.device,
+        inference_mode: str = "sliding",
+        sliding_inference_batch: int = None,
+        use_wandb: bool = False,
+        wandb_offline: bool = False,
+        wandb_offline_sync_communication_dir: str | Path = None,
+        # ---- visualization flags ----
+        save_predictions: bool = False,
+        save_visualizations: bool = False,
+        save_output_dir: str | Path | None = None,
+        max_samples_to_visualize: int = -1,
+        rgb_bands: list[int] | None = None,
+        overwrite: bool = True,
+        vizus_to_wandb: bool = True,
     ) -> None:
         self.rank = int(os.environ["RANK"])
         self.val_loader = val_loader
@@ -75,6 +77,15 @@ class Evaluator:
         self.num_classes = len(self.classes)
         self.max_name_len = max([len(name) for name in self.classes])
         self.use_wandb = use_wandb
+        self.wandb_offline = wandb_offline
+        self.wandb_offline_sync_communication_dir = wandb_offline_sync_communication_dir
+
+        if self.use_wandb and self.wandb_offline:
+            from wandb_osh.hooks import TriggerWandbSyncHook
+
+            self.trigger_sync = TriggerWandbSyncHook(
+                communication_dir=Path(self.wandb_offline_sync_communication_dir)
+            )
 
         # Compute valid class indices (excluding ignore index)
         self.valid_class_indices = [
@@ -97,12 +108,19 @@ class Evaluator:
         )
 
     def evaluate(
-            self,
-            model: torch.nn.Module,
-            model_name: str,
-            model_ckpt_path: str | Path | None = None,
+        self,
+        model: torch.nn.Module,
+        model_name: str,
+        model_ckpt_path: str | Path | None = None,
     ) -> None:
         raise NotImplementedError
+
+    def sync_wandb_if_offline(self):
+        if self.use_wandb and self.wandb_offline and self.rank == 0:
+            try:
+                self.trigger_sync()
+            except OSError as e:
+                self.logger.error(f"Error syncing Weights and Biases: {e}")
 
     def __call__(self, model):
         pass
@@ -114,7 +132,9 @@ class Evaluator:
         pass
 
     @staticmethod
-    def sliding_inference(model, img, input_size, output_shape=None, stride=None, max_batch=None):
+    def sliding_inference(
+        model, img, input_size, output_shape=None, stride=None, max_batch=None
+    ):
         b, c, t, height, width = img[list(img.keys())[0]].shape
 
         if stride is None:
@@ -142,20 +162,37 @@ class Evaluator:
         max_batch = max_batch if max_batch is not None else b * num_crops_per_img
         batch_num = int(math.ceil(b * num_crops_per_img / max_batch))
         for i in range(batch_num):
-            img_ = {k: v[max_batch * i: min(max_batch * i + max_batch, b * num_crops_per_img)] for k, v in img.items()}
+            img_ = {
+                k: v[
+                    max_batch
+                    * i : min(max_batch * i + max_batch, b * num_crops_per_img)
+                ]
+                for k, v in img.items()
+            }
             pred_ = model.forward(img_, output_shape=(input_size, input_size))
             pred.append(pred_)
         pred = torch.cat(pred, dim=0)
-        pred = pred.view(num_crops_per_img, b, -1, input_size, input_size).transpose(0, 1)
+        pred = pred.view(num_crops_per_img, b, -1, input_size, input_size).transpose(
+            0, 1
+        )
 
         merged_pred = torch.zeros((b, pred.shape[2], height, width), device=pred.device)
-        pred_count = torch.zeros((b, height, width), dtype=torch.long, device=pred.device)
+        pred_count = torch.zeros(
+            (b, height, width), dtype=torch.long, device=pred.device
+        )
         for i in range(h):
             for j in range(w):
-                merged_pred[:, :, h_grid[i]:h_grid[i] + input_size,
-                w_grid[j]:w_grid[j] + input_size] += pred[:, h * i + j]
-                pred_count[:, h_grid[i]:h_grid[i] + input_size,
-                w_grid[j]:w_grid[j] + input_size] += 1
+                merged_pred[
+                    :,
+                    :,
+                    h_grid[i] : h_grid[i] + input_size,
+                    w_grid[j] : w_grid[j] + input_size,
+                ] += pred[:, h * i + j]
+                pred_count[
+                    :,
+                    h_grid[i] : h_grid[i] + input_size,
+                    w_grid[j] : w_grid[j] + input_size,
+                ] += 1
 
         merged_pred = merged_pred / pred_count.unsqueeze(1)
         if output_shape is not None:
@@ -173,8 +210,10 @@ class LinearClassificationEvaluator(Evaluator):
         inference_mode: str = "whole",
         sliding_inference_batch: int = None,
         use_wandb: bool = False,
-        multi_label: bool = False,   # Flag to indicate multi-label evaluation
-        topk: int = 1,               # For multi-label: if > 1, use top-k selection
+        wandb_offline: bool = False,
+        wandb_offline_sync_communication_dir: str | Path = None,
+        multi_label: bool = False,  # Flag to indicate multi-label evaluation
+        topk: int = 1,  # For multi-label: if > 1, use top-k selection
         save_predictions: bool = False,
         save_visualizations: bool = False,
         save_output_dir: str | Path | None = None,
@@ -184,32 +223,47 @@ class LinearClassificationEvaluator(Evaluator):
         vizus_to_wandb: bool = True,
     ) -> None:
         super().__init__(
-            val_loader, exp_dir, device, inference_mode, sliding_inference_batch,
-            use_wandb, save_predictions, save_visualizations, save_output_dir,
-            max_samples_to_visualize, rgb_bands, overwrite, vizus_to_wandb,
+            val_loader,
+            exp_dir,
+            device,
+            inference_mode,
+            sliding_inference_batch,
+            use_wandb,
+            wandb_offline,
+            wandb_offline_sync_communication_dir,
+            save_predictions, 
+            save_visualizations,
+            save_output_dir,
+            max_samples_to_visualize, 
+            rgb_bands, 
+            overwrite, 
+            vizus_to_wandb,
         )
         self.multi_label = multi_label
         self.topk = topk
-        
+
     def evaluate(
-        self, 
-        model: torch.nn.Module, 
-        model_name: str, 
-        model_ckpt_path: str | Path | None = None):
-        
+        self,
+        model: torch.nn.Module,
+        model_name: str,
+        model_ckpt_path: str | Path | None = None,
+    ):
+
         t = time.time()
         self.visualizer.set_step_tag(model_name)
         if model_ckpt_path is not None:
-            model_dict = torch.load(model_ckpt_path, map_location=self.device, weights_only=False)
+            model_dict = torch.load(
+                model_ckpt_path, map_location=self.device, weights_only=False
+            )
             model_name = os.path.basename(model_ckpt_path).split(".")[0]
             if "model" in model_dict:
                 model.module.load_state_dict(model_dict["model"])
             else:
                 model.module.load_state_dict(model_dict)
             self.logger.info(f"Loaded {model_name} for evaluation")
-        
+
         model.eval()
-        
+
         all_preds = []
         all_targets = []
         total_correct = 0
@@ -221,10 +275,10 @@ class LinearClassificationEvaluator(Evaluator):
             image, target = data["image"], data["target"]
             image = {k: v.to(self.device) for k, v in image.items()}
             target = target.to(self.device)
-            
+
             with torch.no_grad():
                 logits = model(image)
-            
+
             if self.multi_label:
                 preds_prob = torch.sigmoid(logits)
                 if self.topk > 1:
@@ -273,33 +327,38 @@ class LinearClassificationEvaluator(Evaluator):
         
         all_preds = np.concatenate(all_preds, axis=0)
         all_targets = np.concatenate(all_targets, axis=0)
-        
-        
+
         if self.multi_label:
             accuracy = sklearn.metrics.accuracy_score(all_targets, all_preds)
             precision, recall, f1, _ = sklearn.metrics.precision_recall_fscore_support(
-                all_targets, all_preds, average="micro", zero_division=0)
+                all_targets, all_preds, average="micro", zero_division=0
+            )
         else:
             accuracy = total_correct / total_samples if total_samples > 0 else 0
 
             precision, recall, f1, _ = sklearn.metrics.precision_recall_fscore_support(
-                    all_targets, all_preds,labels=list(range(self.num_classes)), average="macro", zero_division=0)
-        
+                all_targets,
+                all_preds,
+                labels=list(range(self.num_classes)),
+                average="macro",
+                zero_division=0,
+            )
+
         metrics = {
             "accuracy": accuracy,
             "precision": precision,
             "recall": recall,
             "F1": f1,
         }
-        
+
         self.log_metrics(metrics)
         self.visualizer.log_summary()
         used_time = time.time() - t
         return metrics, used_time
-    
+
     def __call__(self, model, model_name, model_ckpt_path=None):
         return self.evaluate(model, model_name, model_ckpt_path)
-    
+
     def compute_metrics(self):
         pass
 
@@ -323,16 +382,20 @@ class LinearClassificationEvaluator(Evaluator):
         self.logger.info(f1_str)
 
         if self.use_wandb and self.rank == 0:
-            wandb.log({
-                f"{self.split}_accuracy": metrics["accuracy"],
-                f"{self.split}_precision": metrics["precision"],
-                f"{self.split}_recall": metrics["recall"],
-                f"{self.split}_f1": metrics["F1"],
-            })
-        
+            wandb.log(
+                {
+                    f"{self.split}_accuracy": metrics["accuracy"],
+                    f"{self.split}_precision": metrics["precision"],
+                    f"{self.split}_recall": metrics["recall"],
+                    f"{self.split}_f1": metrics["F1"],
+                }
+            )
+        self.sync_wandb_if_offline()
+
 
 class KNNClassificationEvaluator(Evaluator):
     """Builds a feature bank from *train_loader* and evaluates on *val_loader*."""
+
     def __init__(
         self,
         val_loader: DataLoader,
@@ -341,9 +404,18 @@ class KNNClassificationEvaluator(Evaluator):
         inference_mode: str = "whole",
         sliding_inference_batch: int = None,
         use_wandb: bool = False,
+        wandb_offline: bool = False,
+        wandb_offline_sync_communication_dir: str | Path = None,
         multi_label: bool = False,
     ) -> None:
-        super().__init__(val_loader, exp_dir, device, use_wandb)
+        super().__init__(
+            val_loader,
+            exp_dir,
+            device,
+            use_wandb,
+            wandb_offline,
+            wandb_offline_sync_communication_dir,
+        )
         self.multi_label = multi_label
         self.logger = logging.getLogger()
         # e.g., self.split is set by base Evaluator to "val" or "test"
@@ -354,23 +426,27 @@ class KNNClassificationEvaluator(Evaluator):
             pred_np = pred_rank.cpu().numpy()
             target_np = target.cpu().numpy()
             return sklearn.metrics.f1_score(
-                target_np, pred_np, average='micro', zero_division=0
+                target_np, pred_np, average="micro", zero_division=0
             )
         else:
             # single-label: pred_rank is (B, C) sorted class indices
-            return (pred_rank[:, :k] == target.unsqueeze(1)).any(1).float().mean().item()
+            return (
+                (pred_rank[:, :k] == target.unsqueeze(1)).any(1).float().mean().item()
+            )
 
     def evaluate(
         self,
         model: KNNClassifier,
         train_loader: DataLoader,
         model_name: str,
-        model_ckpt_path: str | Path | None = None
+        model_ckpt_path: str | Path | None = None,
     ):
         t0 = time.time()
         # Load checkpoint if provided
         if model_ckpt_path is not None:
-            ckpt = torch.load(model_ckpt_path, map_location=self.device, weights_only=False)
+            ckpt = torch.load(
+                model_ckpt_path, map_location=self.device, weights_only=False
+            )
             model_name = os.path.basename(model_ckpt_path).split(".")[0]
             state = ckpt.get("model", ckpt)
             model.module.load_state_dict(state)
@@ -382,7 +458,9 @@ class KNNClassificationEvaluator(Evaluator):
 
         if model._bank is None or model._bank_labels is None:
             if train_loader is None:
-                raise ValueError("train_loader is required to build feature bank for k-NN probe")
+                raise ValueError(
+                    "train_loader is required to build feature bank for k-NN probe"
+                )
             model.build_feature_bank(train_loader, self.device)
 
         total = 0
@@ -406,10 +484,10 @@ class KNNClassificationEvaluator(Evaluator):
                 f1 = sklearn.metrics.f1_score(
                     target.cpu().numpy(),
                     pred.cpu().numpy(),
-                    average='micro',
-                    zero_division=0
+                    average="micro",
+                    zero_division=0,
                 )
-                topk_correct[ model.topk[0] ] += f1 * bsz
+                topk_correct[model.topk[0]] += f1 * bsz
             else:
                 for k in model.topk:
                     acc = self.topk_acc(pred, target, k)
@@ -417,10 +495,11 @@ class KNNClassificationEvaluator(Evaluator):
 
         # Aggregate metrics
         if self.multi_label:
-            final_f1 = topk_correct[ model.topk[0] ] / total
+            final_f1 = topk_correct[model.topk[0]] / total
             self.logger.info(f"[{self.split}] F1 Score: {final_f1:.3f}")
             if self.use_wandb and getattr(self, "rank", 0) == 0:
                 import wandb
+
                 wandb.log({f"{self.split}_f1": final_f1})
             metrics = {"f1": final_f1}
         else:
@@ -432,17 +511,21 @@ class KNNClassificationEvaluator(Evaluator):
             self.logger.info(top2_str)
             if self.use_wandb and getattr(self, "rank", 0) == 0:
                 import wandb
-                wandb.log({
-                    f"{self.split}_top1": metrics['top1'],
-                    f"{self.split}_top2": metrics.get('top2', metrics['top1']),
-                })
+
+                wandb.log(
+                    {
+                        f"{self.split}_top1": metrics["top1"],
+                        f"{self.split}_top2": metrics.get("top2", metrics["top1"]),
+                    }
+                )
+        self.sync_wandb_if_offline()
 
         return metrics, time.time() - t0
 
     def __call__(self, model, model_name, model_ckpt_path=None, train_loader=None):
         return self.evaluate(model, train_loader, model_name, model_ckpt_path)
-                             
-                             
+
+
 class SegEvaluator(Evaluator):
     """
     SegEvaluator is a class for evaluating segmentation models. It extends the Evaluator class and provides methods
@@ -465,34 +548,45 @@ class SegEvaluator(Evaluator):
     """
 
     def __init__(
-            self,
-            val_loader: DataLoader,
-            exp_dir: str | Path,
-            device: torch.device,
-            inference_mode: str = 'sliding',
-            sliding_inference_batch: int = None,
-            use_wandb: bool = False,
-            save_predictions: bool = False,
-            save_visualizations: bool = False,
-            save_output_dir: str | Path | None = None,
-            max_samples_to_visualize: int = -1,
-            rgb_bands: list[int] | None = None,
-            overwrite: bool = True,
-            vizus_to_wandb: bool = True,
+        self,
+        val_loader: DataLoader,
+        exp_dir: str | Path,
+        device: torch.device,
+        inference_mode: str = "sliding",
+        sliding_inference_batch: int = None,
+        use_wandb: bool = False,
+        wandb_offline: bool = False,
+        wandb_offline_sync_communication_dir: str | Path = None,
+        save_predictions: bool = False,
+        save_visualizations: bool = False,
+        save_output_dir: str | Path | None = None,
+        max_samples_to_visualize: int = -1,
+        rgb_bands: list[int] | None = None,
+        overwrite: bool = True,
+        vizus_to_wandb: bool = True,
     ):
         super().__init__(
-            val_loader, exp_dir, device, inference_mode, sliding_inference_batch,
-            use_wandb, save_predictions, save_visualizations, save_output_dir,
+            val_loader,
+            exp_dir,
+            device,
+            inference_mode,
+            sliding_inference_batch,
+            use_wandb,
+            wandb_offline,
+            wandb_offline_sync_communication_dir,
+            save_predictions, save_visualizations, save_output_dir,
             max_samples_to_visualize, rgb_bands, overwrite, vizus_to_wandb,
         )
 
     @torch.no_grad()
-    def evaluate(self, model, model_name='model', model_ckpt_path=None):
+    def evaluate(self, model, model_name="model", model_ckpt_path=None):
         t = time.time()
         self.visualizer.set_step_tag(model_name)
 
         if model_ckpt_path is not None:
-            model_dict = torch.load(model_ckpt_path, map_location=self.device, weights_only=False)
+            model_dict = torch.load(
+                model_ckpt_path, map_location=self.device, weights_only=False
+            )
             model_name = os.path.basename(model_ckpt_path).split(".")[0]
             if "model" in model_dict:
                 model.module.load_state_dict(model_dict["model"])
@@ -523,12 +617,19 @@ class SegEvaluator(Evaluator):
 
             if self.inference_mode == "sliding":
                 input_size = model.module.encoder.input_size
-                logits = self.sliding_inference(model, image, input_size, output_shape=target.shape[-2:],
-                                                max_batch=self.sliding_inference_batch)
+                logits = self.sliding_inference(
+                    model,
+                    image,
+                    input_size,
+                    output_shape=target.shape[-2:],
+                    max_batch=self.sliding_inference_batch,
+                )
             elif self.inference_mode == "whole":
                 logits = model(image, output_shape=target.shape[-2:])
             else:
-                raise NotImplementedError((f"Inference mode {self.inference_mode} is not implemented."))
+                raise NotImplementedError(
+                    (f"Inference mode {self.inference_mode} is not implemented.")
+                )
             if logits.shape[1] == 1:
                 pred = (torch.sigmoid(logits) > 0.5).type(torch.int64).squeeze(dim=1)
             else:
@@ -594,7 +695,7 @@ class SegEvaluator(Evaluator):
 
         # Calculate mean IoU, mean F1-score, and mean Accuracy
         valid = self.valid_class_indices
-            
+
         miou = iou[valid].mean().item() if valid else 0.0
         mf1 = f1[valid].mean().item() if valid else 0.0
         macc = (intersection.sum() / (confusion_matrix.sum() + 1e-6)).item() * 100
@@ -604,7 +705,7 @@ class SegEvaluator(Evaluator):
         f1 = [f1[i].item() for i in valid]
         precision = [precision[i].item() for i in valid]
         recall = [recall[i].item() for i in valid]
-        
+
         # Prepare the metrics dictionary
         metrics = {
             "IoU": iou,
@@ -622,24 +723,32 @@ class SegEvaluator(Evaluator):
         def format_metric(name, values, mean_value):
             header = f"[{self.split}] ------- {name} --------\n"
             metric_str = (
-                    "\n".join(
-                        c.ljust(self.max_name_len, " ") + "\t{:>7}".format("%.3f" % num)
-                        for c, num in zip(self.valid_classes, values)
-                    )
-                    + "\n"
+                "\n".join(
+                    c.ljust(self.max_name_len, " ") + "\t{:>7}".format("%.3f" % num)
+                    for c, num in zip(self.valid_classes, values)
+                )
+                + "\n"
             )
             mean_str = (
-                    f"[{self.split}]-------------------\n"
-                    + f"[{self.split}] Mean".ljust(self.max_name_len, " ")
-                    + "\t{:>7}".format("%.3f" % mean_value)
+                f"[{self.split}]-------------------\n"
+                + f"[{self.split}] Mean".ljust(self.max_name_len, " ")
+                + "\t{:>7}".format("%.3f" % mean_value)
             )
             return header + metric_str + mean_str
 
         iou_str = format_metric("IoU", metrics["IoU"], metrics["mIoU"])
         f1_str = format_metric("F1-score", metrics["F1"], metrics["mF1"])
 
-        precision_mean = sum(metrics["Precision"]) / len(metrics["Precision"]) if metrics["Precision"] else 0.0
-        recall_mean = sum(metrics["Recall"]) / len(metrics["Recall"]) if metrics["Recall"] else 0.0
+        precision_mean = (
+            sum(metrics["Precision"]) / len(metrics["Precision"])
+            if metrics["Precision"]
+            else 0.0
+        )
+        recall_mean = (
+            sum(metrics["Recall"]) / len(metrics["Recall"])
+            if metrics["Recall"]
+            else 0.0
+        )
 
         precision_str = format_metric("Precision", metrics["Precision"], precision_mean)
         recall_str = format_metric("Recall", metrics["Recall"], recall_mean)
@@ -676,6 +785,7 @@ class SegEvaluator(Evaluator):
                     },
                 }
             )
+        self.sync_wandb_if_offline()
 
 
 class RegEvaluator(Evaluator):
@@ -696,36 +806,47 @@ class RegEvaluator(Evaluator):
     """
 
     def __init__(
-            self,
-            val_loader: DataLoader,
-            exp_dir: str | Path,
-            device: torch.device,
-            inference_mode: str = 'sliding',
-            sliding_inference_batch: int = None,
-            use_wandb: bool = False,
-            save_predictions: bool = False,
-            save_visualizations: bool = False,
-            save_output_dir: str | Path | None = None,
-            max_samples_to_visualize: int = -1,
-            rgb_bands: list[int] | None = None,
-            overwrite: bool = True,
-            vizus_to_wandb: bool = True,
+        self,
+        val_loader: DataLoader,
+        exp_dir: str | Path,
+        device: torch.device,
+        inference_mode: str = "sliding",
+        sliding_inference_batch: int = None,
+        use_wandb: bool = False,
+        wandb_offline: bool = False,
+        wandb_offline_sync_communication_dir: str | Path = None,
+        save_predictions: bool = False,
+        save_visualizations: bool = False,
+        save_output_dir: str | Path | None = None,
+        max_samples_to_visualize: int = -1,
+        rgb_bands: list[int] | None = None,
+        overwrite: bool = True,
+        vizus_to_wandb: bool = True,
     ):
         super().__init__(
-            val_loader, exp_dir, device, inference_mode, sliding_inference_batch,
-            use_wandb, save_predictions, save_visualizations, save_output_dir,
+            val_loader,
+            exp_dir,
+            device,
+            inference_mode,
+            sliding_inference_batch,
+            use_wandb,
+            wandb_offline,
+            wandb_offline_sync_communication_dir,
+            save_predictions, save_visualizations, save_output_dir,
             max_samples_to_visualize, rgb_bands, overwrite, vizus_to_wandb,
         )
 
     @torch.no_grad()
-    def evaluate(self, model, model_name='model', model_ckpt_path=None):
+    def evaluate(self, model, model_name="model", model_ckpt_path=None):
         t = time.time()
         self.visualizer.set_step_tag(model_name)
 
         if model_ckpt_path is not None:
-            model_dict = torch.load(model_ckpt_path, map_location=self.device, weights_only=False)
-            model_name = os.path.basename(model_ckpt_path).split('.')[0]
-            if 'model' in model_dict:
+            model_dict = torch.load(
+                model_ckpt_path, map_location=self.device, weights_only=False
+            )
+            model_name = os.path.basename(model_ckpt_path).split(".")[0]
+            if "model" in model_dict:
                 model.module.load_state_dict(model_dict["model"])
             else:
                 model.module.load_state_dict(model_dict)
@@ -734,13 +855,13 @@ class RegEvaluator(Evaluator):
 
         model.eval()
 
-        tag = f'Evaluating {model_name} on {self.split} set'
+        tag = f"Evaluating {model_name} on {self.split} set"
 
         mse = torch.zeros(1, device=self.device)
         global_sample_idx = 0
 
         for batch_idx, data in enumerate(tqdm(self.val_loader, desc=tag)):
-            image, target = data['image'], data['target']
+            image, target = data["image"], data["target"]
             image = {k: v.to(self.device) for k, v in image.items()}
             target = target.to(self.device)
 
@@ -752,12 +873,46 @@ class RegEvaluator(Evaluator):
 
             if self.inference_mode == "sliding":
                 input_size = model.module.encoder.input_size
-                logits = self.sliding_inference(model, image, input_size, output_shape=target.shape[-2:],
-                                                max_batch=self.sliding_inference_batch).squeeze(dim=1)
+                logits = self.sliding_inference(
+                    model,
+                    image,
+                    input_size,
+                    output_shape=target.shape[-2:],
+                    max_batch=self.sliding_inference_batch,
+                ).squeeze(dim=1)
             elif self.inference_mode == "whole":
                 logits = model(image, output_shape=target.shape[-2:]).squeeze(dim=1)
             else:
-                raise NotImplementedError((f"Inference mode {self.inference_mode} is not implemented."))
+                raise NotImplementedError(
+                    (f"Inference mode {self.inference_mode} is not implemented.")
+                )
+
+            # --- visualization ---
+            if self.visualizer.should_save() and image_orig_cpu is not None:
+                batch_meta = data.get("metadata", [{}] * target.shape[0])
+                for i in range(target.shape[0]):
+                    if not self.visualizer.should_save():
+                        break
+                    sample_name = _get_sample_name(
+                        batch_meta[i] if i < len(batch_meta) else {},
+                        global_sample_idx,
+                    )
+                    self.visualizer.save_reg_sample(
+                        sample_name=sample_name,
+                        image_dict={k: v[i] for k, v in image_orig_cpu.items()},
+                        target=target[i].cpu(),
+                        pred=logits[i].cpu(),
+                        class_names=self.classes,
+                    )
+                    global_sample_idx += 1
+            else:
+                global_sample_idx += target.shape[0]
+
+            # sparse backprop
+            if self.val_loader.dataset.dataset_name == "AGBDLite":
+                valid_mask = (target != self.val_loader.dataset.ignore_index)
+                logits = logits[valid_mask]
+                target = target[valid_mask]
 
             # --- visualization ---
             if self.visualizer.should_save() and image_orig_cpu is not None:
@@ -800,14 +955,26 @@ class RegEvaluator(Evaluator):
         return metrics, used_time
 
     @torch.no_grad()
-    def __call__(self, model, model_name='model', model_ckpt_path=None):
+    def __call__(self, model, model_name="model", model_ckpt_path=None):
         return self.evaluate(model, model_name, model_ckpt_path)
 
     def log_metrics(self, metrics):
         header = f"[{self.split}] ------- MSE and RMSE --------\n"
-        mse = f"[{self.split}]-------------------\n" + 'MSE \t{:>7}'.format('%.3f' % metrics['MSE']) + '\n'
-        rmse = f"[{self.split}]-------------------\n" + 'RMSE \t{:>7}'.format('%.3f' % metrics['RMSE'])
+        mse = (
+            f"[{self.split}]-------------------\n"
+            + "MSE \t{:>7}".format("%.3f" % metrics["MSE"])
+            + "\n"
+        )
+        rmse = f"[{self.split}]-------------------\n" + "RMSE \t{:>7}".format(
+            "%.3f" % metrics["RMSE"]
+        )
         self.logger.info(header + mse + rmse)
 
         if self.use_wandb and self.rank == 0:
-            wandb.log({f"{self.split}_MSE": metrics["MSE"], f"{self.split}_RMSE": metrics["RMSE"]})
+            wandb.log(
+                {
+                    f"{self.split}_MSE": metrics["MSE"],
+                    f"{self.split}_RMSE": metrics["RMSE"],
+                }
+            )
+        self.sync_wandb_if_offline()
