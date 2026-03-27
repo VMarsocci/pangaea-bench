@@ -1,4 +1,4 @@
-name: pangaea-bench
+name: pangaea-bench-test
 channels:
   - pytorch
   - nvidia
@@ -30,8 +30,10 @@ dependencies:
   - pytest
   - yacs
   - wandb
-  - wandb-osh
   - hydra-core
   - h5py
   - albumentations
+  - pip
+  - pip:
+      - wandb-osh
 
