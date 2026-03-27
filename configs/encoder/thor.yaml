@@ -1,0 +1,26 @@
+_target_: pangaea.encoders.thor_encoder.thor_base_encoder
+encoder_weights: ./pretrained_models/THOR/thor_base.ckpt
+# Other available THOR encoders: thor_tiny_encoder, thor_small_encoder, thor_large_encoder
+input_bands:
+  optical:
+    - B2
+    - B3
+    - B4
+    - B5
+    - B6
+    - B7
+    - B8
+    - B8A
+    - B11
+    - B12
+  # sar:
+  #   - VV
+  #   - VH
+input_size: 96
+patch_size: 16
+output_aggr: mean
+output_layers:
+  - 2
+  - 5
+  - 8
+  - 11

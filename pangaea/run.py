@@ -101,12 +101,51 @@ def main(cfg: DictConfig) -> None:
         OmegaConf.save(cfg, config_log_dir / "config.yaml")
 
     else:
+        test_cfg = cfg
         exp_dir = pathlib.Path(cfg.ckpt_dir)
         exp_name = exp_dir.name
-        logger_path = exp_dir / "test.log"
         # load training config
         cfg_path = exp_dir / "configs" / "config.yaml"
         cfg = OmegaConf.load(cfg_path)
+
+        cfg.train = False
+        cfg.ckpt_dir = str(exp_dir)
+
+        # preserve test-time runtime options from test config
+        for key in [
+            "use_wandb",
+            "use_final_ckpt",
+            "test_batch_size",
+            "test_num_workers",
+            "test_log_name",
+            "save_predictions",
+            "save_visualizations",
+            "save_output_dir",
+            "max_samples_to_visualize",
+            "overwrite",
+        ]:
+            if key in test_cfg:
+                cfg[key] = test_cfg[key]
+
+        # optional cross-testing: evaluate checkpoint on another dataset or preprocessing
+        cross_test_dataset = test_cfg.get("dataset")
+        if cross_test_dataset:
+            cfg.dataset = cross_test_dataset
+
+        cross_test_preprocessing = test_cfg.get("preprocessing")
+        if cross_test_preprocessing:
+            cfg.preprocessing = cross_test_preprocessing
+
+        cross_test_root_path = test_cfg.get("root_path")
+        if cross_test_root_path:
+            cfg.dataset.root_path = cross_test_root_path
+
+        test_log_name = test_cfg.get("test_log_name")
+        if test_log_name:
+            logger_path = exp_dir / test_log_name
+        else:
+            logger_path = exp_dir / "test.log"
+
         if cfg.task.trainer.use_wandb and rank == 0:
             import wandb
 
@@ -262,7 +301,6 @@ def main(cfg: DictConfig) -> None:
 
         trainer.train()
 
-    
     # Evaluation
     test_preprocessor = instantiate(
         cfg.preprocessing.test,
@@ -286,17 +324,25 @@ def main(cfg: DictConfig) -> None:
         collate_fn=collate_fn,
     )
     test_evaluator: Evaluator = instantiate(
-        cfg.task.evaluator, val_loader=test_loader, exp_dir=exp_dir, device=device
+        cfg.task.evaluator,
+        val_loader=test_loader,
+        exp_dir=exp_dir,
+        device=device,
+        save_predictions=cfg.get("save_predictions", False),
+        save_visualizations=cfg.get("save_visualizations", False),
+        save_output_dir=cfg.get("save_output_dir", None) or str(exp_dir),
+        max_samples_to_visualize=cfg.get("max_samples_to_visualize", -1),
+        overwrite=cfg.get("overwrite", True),
     )
 
     if cfg.use_final_ckpt:
         model_ckpt_path = get_final_model_ckpt_path(exp_dir)
     else:
         model_ckpt_path = get_best_model_ckpt_path(exp_dir)
-        
+
     if model_ckpt_path is None and not cfg.task.trainer.model_name == "knn_probe":
         raise ValueError(f"No model checkpoint found in {exp_dir}")
-    
+
     test_evaluator.evaluate(decoder, "test_model", model_ckpt_path)
 
     if cfg.use_wandb and rank == 0:

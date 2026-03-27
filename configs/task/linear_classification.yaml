@@ -28,3 +28,10 @@ evaluator:
   use_wandb: ${use_wandb}
   inference_mode: null
   sliding_inference_batch: null
+  # visualization — overridden at test time via test.yaml or CLI
+  save_predictions: false
+  save_visualizations: false
+  save_output_dir: null
+  max_samples_to_visualize: -1
+  overwrite: true
+  rgb_bands: [2, 1, 0]

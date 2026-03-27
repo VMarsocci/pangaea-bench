@@ -1,27 +1,34 @@
 import math
-import types
 import warnings
+import logging
 from collections.abc import Iterable, Sequence
 from functools import partial
 from itertools import repeat
 from logging import Logger
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Final, Optional
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from einops import rearrange
-from timm.models.vision_transformer import Block
+from timm.layers import (
+    DropPath,
+    Mlp,
+    use_fused_attn,
+)
+from timm.models.vision_transformer import LayerScale
 from torch import Tensor, nn, vmap
 
 from pangaea.encoders.base import Encoder
-from pangaea.encoders.pos_embed import (
-    get_1d_sincos_pos_embed_from_grid,
-    get_1d_sincos_pos_embed_from_grid_torch,
-)
 
-pangaea_to_fm4cs_band_map = {
+logging.basicConfig(
+    level=logging.INFO,
+)
+logger = logging.getLogger(__name__)
+
+
+pangaea_to_thor_band_map = {
     "B1": "S2:CoastAerosal",
     "B2": "S2:Blue",
     "B3": "S2:Green",
@@ -41,17 +48,6 @@ pangaea_to_fm4cs_band_map = {
     "ASC_VH": "S1:IW-VH",
     "DSC_VV": "S1:IW-VV",
     "DSC_VH": "S1:IW-VH",
-
-    # SeaIce mappings
-    "S1_reflectance_an": "S3:S1_reflectance_an",
-    "S2_reflectance_an": "S3:S2_reflectance_an", 
-    "S3_reflectance_an": "S3:S3_reflectance_an",
-    "S5_reflectance_an": "S3:S5_reflectance_an",
-    "S6_reflectance_an": "S3:S6_reflectance_an",
-    "S8_BT_in": "S3:S8_BT_in",
-    "S9_BT_in": "S3:S9_BT_in",
-    "EW-HH_250": "S1:EW-HH", 
-    "EW-HV_250": "S1:EW-HV",
 }
 
 
@@ -59,11 +55,8 @@ DEFAULT_GROUPS = [
     ["S2:Red", "S2:Green", "S2:Blue", "S2:NIR"],
     ["S2:RE1", "S2:RE2", "S2:RE3", "S2:RE4", "S2:SWIR1", "S2:SWIR2"],
     ["S2:CoastAerosal", "S2:WaterVapor"],
-    ["S1:IW-VH", "S1:IW-VV"],
-    ["S1:IW-HV", "S1:IW-HH"],
-    ["S1:EW-VH", "S1:EW-VV"],
-    ["S1:EW-HV", "S1:EW-HH"],
-    # Groups present in model, unused in pangaea (until 22.10.2025)
+    ["S1:IW-VH", "S1:IW-VV", "S1:EW-VH", "S1:EW-VV"],
+    ["S1:IW-HV", "S1:IW-HH", "S1:EW-HV", "S1:EW-HH"],
     [
         "S3:Oa01_reflectance",
         "S3:Oa02_reflectance",
@@ -154,36 +147,43 @@ DEFAULT_CHANNELS = {
     "S1:IW-VV": {
         "GSD": 10,
         "patch_size": 16,  # px
+        "patch_embed_name": "S1:VV",
     },
     "S1:IW-VH": {
         "GSD": 10,
         "patch_size": 16,  # px
+        "patch_embed_name": "S1:VH",
     },
     "S1:IW-HV": {
         "GSD": 10,
         "patch_size": 16,  # px
+        "patch_embed_name": "S1:HV",
     },
     "S1:IW-HH": {
         "GSD": 10,
         "patch_size": 16,  # px
+        "patch_embed_name": "S1:HH",
     },
     "S1:EW-VV": {
         "GSD": 10,
         "patch_size": 16,  # px
+        "patch_embed_name": "S1:VV",
     },
     "S1:EW-VH": {
         "GSD": 10,
         "patch_size": 16,  # px
+        "patch_embed_name": "S1:VH",
     },
     "S1:EW-HV": {
         "GSD": 10,
         "patch_size": 16,  # px
+        "patch_embed_name": "S1:HV",
     },
     "S1:EW-HH": {
         "GSD": 10,
         "patch_size": 16,  # px
+        "patch_embed_name": "S1:HH",
     },
-    # Groups present in model, unused in pangaea (until 22.10.2025)
     "S3:Oa01_reflectance": {
         "GSD": 240,  # GSD 240 interp
         "patch_size": 16,  # px
@@ -304,43 +304,6 @@ DEFAULT_CHANNELS = {
         "GSD": 960,  # GSD 960 interp
         "patch_size": 16,  # px
     },
-    # SeaIce dataset specific bands with actual GSDs
-    "S1:EW-HH": {
-        "GSD": 250,  # Actual SeaIce SAR GSD
-        "patch_size": 6,   # SeaIce patch size
-    },
-    "S1:EW-HV": {
-        "GSD": 250,  # Actual SeaIce SAR GSD  
-        "patch_size": 6,   # SeaIce patch size
-    },
-    "S3:S1_reflectance_an": {
-        "GSD": 500,  # Actual SeaIce S3 optical GSD
-        "patch_size": 6,   # SeaIce patch size
-    },
-    "S3:S2_reflectance_an": {
-        "GSD": 500,  # Actual SeaIce S3 optical GSD
-        "patch_size": 6,   # SeaIce patch size
-    },
-    "S3:S3_reflectance_an": {
-        "GSD": 500,  # Actual SeaIce S3 optical GSD
-        "patch_size": 6,   # SeaIce patch size
-    },
-    "S3:S5_reflectance_an": {
-        "GSD": 500,  # Actual SeaIce S3 optical GSD
-        "patch_size": 6,   # SeaIce patch size
-    },
-    "S3:S6_reflectance_an": {
-        "GSD": 500,  # Actual SeaIce S3 optical GSD
-        "patch_size": 6,   # SeaIce patch size
-    },
-    "S3:S8_BT_in": {
-        "GSD": 1000,  # Actual SeaIce S3 thermal GSD
-        "patch_size": 6,   # SeaIce patch size
-    },
-    "S3:S9_BT_in": {
-        "GSD": 1000,  # Actual SeaIce S3 thermal GSD
-        "patch_size": 6,   # SeaIce patch size
-    },
 }
 
 
@@ -350,8 +313,6 @@ def to_2tuple(x: Any) -> tuple[int, int]:
     return tuple(repeat(x, 2))
 
 
-# Adapted from https://github.com/bwconrad/flexivit/blob/main/flexivit_pytorch/patch_embed.py
-# MiT License, from https://github.com/bwconrad/flexivit/blob/main/flexivit_pytorch/patch_embed.py
 class IndFlexiPatchEmbed(nn.Module):
     def __init__(
         self,
@@ -363,6 +324,7 @@ class IndFlexiPatchEmbed(nn.Module):
         flatten: bool = True,
         bias: bool = True,
         patch_size_seqs: dict[str, Sequence[int]] | Sequence[int] = (
+            4,
             6,
             8,
             10,
@@ -405,7 +367,7 @@ class IndFlexiPatchEmbed(nn.Module):
             if channel_rename_map and product_band in channel_rename_map:
                 product_band = channel_rename_map[product_band]
             if product_band in proj_dict:
-                print(f"Product band {product_band} already added, skipping")
+                logger.info(f"Product band {product_band} already added, skipping")
                 continue
             proj_dict[product_band] = nn.Conv2d(
                 1, embed_dim, kernel_size=kernel_size, stride=kernel_size, bias=bias
@@ -437,9 +399,10 @@ class IndFlexiPatchEmbed(nn.Module):
                     f"No valid patch sizes for {product_band} for ground cover {ground_covers} and GSD {product_gsd}"
                     f" with patch size seq {patch_size_seqs[product_band]}"
                 )
-                raise ValueError(msg)
+                logger.warning(msg)
+                continue
 
-            print(f"product_band: {product_band}, patch_size_seq: {_patch_size_seq}")
+            logger.info(f"product_band: {product_band}, patch_size_seq: {_patch_size_seq}")
             patch_size_seqs[product_band] = sorted(_patch_size_seq)
 
         self.patch_size_seqs = patch_size_seqs
@@ -507,7 +470,7 @@ class IndFlexiPatchEmbed(nn.Module):
         patch_embed_dict = {}
         for product_band, data in x.items():
             if product_band not in patch_sizes:
-                print(f"Skipping product band: {product_band}")
+                logger.info(f"Skipping product band: {product_band}")
                 continue
 
             patch_size = patch_sizes[product_band]
@@ -546,51 +509,166 @@ class IndFlexiPatchEmbed(nn.Module):
         return patch_embed_dict
 
 
-# Copied from timm.models.vision_transformer and adapted to support Alibi attention
-# Forward method for the Attention class
-def attention_alibi_forward(
-    self, x: torch.Tensor, alibi: torch.Tensor | None = None
-) -> torch.Tensor:
-    B, N, C = x.shape
-    qkv = (
-        self.qkv(x)
-        .reshape(B, N, 3, self.num_heads, self.head_dim)
-        .permute(2, 0, 3, 1, 4)
-    )
-    q, k, v = qkv.unbind(0)
-    q, k = self.q_norm(q), self.k_norm(k)
+def get_1d_sincos_pos_embed_from_grid_torch(embed_dim, pos):
+    """
+    Generate 1D sincos positional embedding.
+    Args:
+        embed_dim: Output dimension for each position
+        pos: A list of positions to be encoded: size (M,)
+    Returns:
+        Positional embedding: (M, D)
+    """
+    assert embed_dim % 2 == 0
+    omega = torch.arange(embed_dim // 2, dtype=torch.float32, device=pos.device)
+    omega /= embed_dim / 2.0
+    omega = 1.0 / 10000**omega  # (D/2,)
 
-    if self.fused_attn:
-        x = F.scaled_dot_product_attention(
-            q,
-            k,
-            v,
-            attn_mask=alibi,
-            dropout_p=self.attn_drop.p if self.training else 0.0,
+    pos = pos.reshape(-1)  # (M,)
+    out = torch.einsum("m,d->md", pos, omega)  # (M, D/2), outer product
+
+    emb_sin = torch.sin(out)  # (M, D/2)
+    emb_cos = torch.cos(out)  # (M, D/2)
+
+    emb = torch.cat([emb_sin, emb_cos], dim=1)  # (M, D)
+    return emb.double()
+
+
+def get_1d_sincos_pos_embed_from_grid(embed_dim, pos):
+    """
+    embed_dim: output dimension for each position
+    pos: a list of positions to be encoded: size (M,)
+    out: (M, D)
+    """
+    assert embed_dim % 2 == 0
+    omega = np.arange(embed_dim // 2, dtype=np.float32)
+    omega /= embed_dim / 2.0
+    omega = 1.0 / 10000**omega  # (D/2,)
+
+    pos = pos.reshape(-1)  # (M,)
+    out = np.einsum("m,d->md", pos, omega)  # (M, D/2), outer product
+
+    emb_sin = np.sin(out)  # (M, D/2)
+    emb_cos = np.cos(out)  # (M, D/2)
+
+    emb = np.concatenate([emb_sin, emb_cos], axis=1)  # (M, D)
+    return emb
+
+
+# Copied from timm.models.vision_transformer
+# and adapted to support alibi
+# furthermore, we use the flexi attention implementation if available
+class Attention(nn.Module):
+    fused_attn: Final[bool]
+
+    def __init__(
+        self,
+        dim: int,
+        num_heads: int = 8,
+        qkv_bias: bool = False,
+        qk_norm: bool = False,
+        attn_drop: float = 0.0,
+        proj_drop: float = 0.0,
+        norm_layer: nn.Module = nn.LayerNorm,
+    ) -> None:
+        super().__init__()
+        assert dim % num_heads == 0, "dim should be divisible by num_heads"
+        self.num_heads = num_heads
+        self.head_dim = dim // num_heads
+        self.scale = self.head_dim**-0.5
+        self.fused_attn = use_fused_attn()
+
+        self.qkv = nn.Linear(dim, dim * 3, bias=qkv_bias)
+        self.q_norm = norm_layer(self.head_dim) if qk_norm else nn.Identity()
+        self.k_norm = norm_layer(self.head_dim) if qk_norm else nn.Identity()
+        self.attn_drop = nn.Dropout(attn_drop)
+        self.proj = nn.Linear(dim, dim)
+        self.proj_drop = nn.Dropout(proj_drop)
+
+    def forward(
+        self, x: torch.Tensor, alibi: torch.Tensor | None = None
+    ) -> torch.Tensor:
+        B, N, C = x.shape
+        qkv = (
+            self.qkv(x)
+            .reshape(B, N, 3, self.num_heads, self.head_dim)
+            .permute(2, 0, 3, 1, 4)
         )
-    else:
-        q = q * self.scale
-        attn = q @ k.transpose(-2, -1)
-        if alibi is not None:
-            attn = attn + alibi
-        attn = attn.softmax(dim=-1)
-        attn = self.attn_drop(attn)
-        x = attn @ v
+        q, k, v = qkv.unbind(0)
+        q, k = self.q_norm(q), self.k_norm(k)
 
-    x = x.transpose(1, 2).reshape(B, N, C)
-    x = self.proj(x)
-    x = self.proj_drop(x)
-    return x
+        if self.fused_attn:
+            x = F.scaled_dot_product_attention(
+                q,
+                k,
+                v,
+                attn_mask=alibi,
+                dropout_p=self.attn_drop.p if self.training else 0.0,
+            )
+        else:
+            q = q * self.scale
+            attn = q @ k.transpose(-2, -1)
+            if alibi is not None:
+                attn = attn + alibi
+            attn = attn.softmax(dim=-1)
+            attn = self.attn_drop(attn)
+            x = attn @ v
+
+        x = x.transpose(1, 2).reshape(B, N, C)
+        x = self.proj(x)
+        x = self.proj_drop(x)
+        return x
 
 
-# Copied from timm.models.vision_transformer and adapted to support Alibi attention
-# Forward method for the Block class
-def block_alibi_forward(
-    self, x: torch.Tensor, alibi: torch.Tensor | None = None
-) -> torch.Tensor:
-    x = x + self.drop_path1(self.ls1(self.attn(self.norm1(x), alibi)))
-    x = x + self.drop_path2(self.ls2(self.mlp(self.norm2(x))))
-    return x
+class Block(nn.Module):
+    def __init__(
+        self,
+        dim: int,
+        num_heads: int,
+        mlp_ratio: float = 4.0,
+        qkv_bias: bool = False,
+        qk_norm: bool = False,
+        proj_drop: float = 0.0,
+        attn_drop: float = 0.0,
+        init_values: Optional[float] = None,
+        drop_path: float = 0.0,
+        act_layer: nn.Module = nn.GELU,
+        norm_layer: nn.Module = nn.LayerNorm,
+        mlp_layer: nn.Module = Mlp,
+    ) -> None:
+        super().__init__()
+        self.norm1 = norm_layer(dim)
+        self.attn = Attention(
+            dim,
+            num_heads=num_heads,
+            qkv_bias=qkv_bias,
+            qk_norm=qk_norm,
+            attn_drop=attn_drop,
+            proj_drop=proj_drop,
+            norm_layer=norm_layer,
+        )
+        self.ls1 = (
+            LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
+        )
+        self.drop_path1 = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
+
+        self.norm2 = norm_layer(dim)
+        self.mlp = mlp_layer(
+            in_features=dim,
+            hidden_features=int(dim * mlp_ratio),
+            act_layer=act_layer,
+            drop=proj_drop,
+        )
+        self.ls2 = (
+            LayerScale(dim, init_values=init_values) if init_values else nn.Identity()
+        )
+        self.drop_path2 = DropPath(drop_path) if drop_path > 0.0 else nn.Identity()
+
+    def forward(
+        self, x: torch.Tensor, alibi: torch.Tensor | None = None
+    ) -> torch.Tensor:
+        x = x + self.drop_path1(self.ls1(self.attn(self.norm1(x), alibi)))
+        x = x + self.drop_path2(self.ls2(self.mlp(self.norm2(x))))
+        return x
 
 
 def get_slopes(n):
@@ -618,12 +696,12 @@ def get_slopes(n):
 
 
 @torch.jit.script
-def get_alibi_fm4cs(
+def get_alibi_thor(
     metadata: dict[str, dict[str, int]],
     available_groups: dict[str, list[str]],
     slopes: torch.Tensor,
-    offset: float = 0.0,
-    device: Optional[torch.device] = None,
+    offset: float | int = 0.0,
+    device: torch.device | None = None,
     dtype: torch.dtype = torch.float32,
 ) -> torch.Tensor:
     """
@@ -631,7 +709,7 @@ def get_alibi_fm4cs(
     Args:
         metadata: Metadata of the input data with GSD, patch_size, and num_patch information
         available_groups: Available groups of the input data
-        slopes: Slopes for attention bias, one per attention head
+        slopes: Slopes for attention heads, used to scale the distance, should be a tensor of shape (num_heads,)
         offset: Offset to add to the distance, useful for cls token
         device: Device for computation
         dtype: Data type for computation
@@ -675,7 +753,7 @@ def get_alibi_fm4cs(
     return distances
 
 
-class FM4CS_Encoder(Encoder):
+class THOR_Encoder(Encoder):
     def __init__(
         self,
         encoder_weights: str | Path,
@@ -683,14 +761,16 @@ class FM4CS_Encoder(Encoder):
         patch_size: int,
         input_bands: dict[str, list[str]],
         output_layers: list[int],
-        download_url: str,
+        download_url: str = "",
         ground_cover: int | None = None,
-        #### Default parameters vit 'base_encoder_alibi_patch_embed_v1 ##########
-        ref_patch_size: int = 6,
+        output_aggr: int | str = "concat",
+        #### Default parameters vit 'base_encoder_alibi_patch_embed' ###
+        ref_patch_size: int = 4,
         patch_size_seqs: dict[str, Sequence[int]] | Sequence[int] | None = None,
         channels: dict[str, dict[str, int]] = DEFAULT_CHANNELS,
         groups: list[list] = DEFAULT_GROUPS,
         aggr_type: str = "subsetmean",
+        ### Base ViT parameters ##########################################
         embed_dim=768,
         depth=12,
         num_heads=12,
@@ -705,30 +785,22 @@ class FM4CS_Encoder(Encoder):
         qkv_bias=True,
         norm_layer=partial(nn.LayerNorm, eps=1e-6),
     ) -> None:
-        # Handle case where input_size is None/null for multi-resolution datasets
         if ground_cover is None:
-            if input_size is not None:
-                ground_cover = input_size * 10
-                print(
-                    f"Assuming ground_cover is {ground_cover} m based on input_size {input_size} px"
-                )
-            else:
-                # Default ground_cover for multi-resolution datasets like SeaIce
-                ground_cover = 6000  # 6km x 6km for SeaIce dataset
-                print(
-                    f"Using default ground_cover of {ground_cover} m for multi-resolution dataset"
-                )
+            ground_cover = input_size * 10
+            logger.info(
+                f"Assuming ground_cover is {ground_cover} m based on input_size {input_size} px"
+            )
         self.ground_cover = ground_cover
-        self.input_size = input_size  # May be None for multi-resolution
 
         bands = [
-            pangaea_to_fm4cs_band_map[band]
+            pangaea_to_thor_band_map[band]
             for modality_bands in input_bands.values()
             for band in modality_bands
         ]
         self.bands = bands
-        print("Bands", self.bands)
+        logger.info(f"Bands: {self.bands}")
 
+        self.aggr_type = aggr_type
         if patch_size < ref_patch_size:
             msg = (
                 f"The model was trained with a ref_patch_size of {ref_patch_size}, but the input patch size is {patch_size}."
@@ -744,12 +816,6 @@ class FM4CS_Encoder(Encoder):
         self.channels = {}
         self.channel_rename_map = {}
         for channel, params in channels.items():
-            if channel not in bands:
-                for group in groups:
-                    if channel in group:
-                        group.remove(channel)
-                print(f"Skipping channel {channel} not in bands")
-                continue
             if "num_patch" in params and "patch_size" not in params:
                 params["patch_size"] = (
                     self.ground_cover // params["num_patch"] // params["GSD"]
@@ -769,31 +835,46 @@ class FM4CS_Encoder(Encoder):
             self.channel_rename_map[channel] = rename_name
             self.channels[channel] = params
 
-        self.min_gsd = min([params["GSD"] for params in self.channels.values()])
         # Default groups
         self.groups = self.validate_group(
             groups
         )  # {'group0':[product_band, ...], 'group1': ..., ...}
 
-        # Groups present in input_bands
         available_groups: dict[str, list[str]] = self.get_available_groups({
             band: None for band in bands
         })
-        print(f"Available groups: {available_groups}")
+
+        self.available_groups = available_groups
+
+        self.output_aggr = output_aggr
+        if self.output_aggr == "concat":
+            output_dim = len(available_groups) * embed_dim
+        elif self.output_aggr in ["mean", "sum", "max", "min"]:
+            output_dim = embed_dim
+        elif isinstance(self.output_aggr, int):
+            output_dim = embed_dim
+        else:
+            raise ValueError(f"Unknown output_aggr {self.output_aggr}")
+
+        logger.info(f"THOR Encoder output_dim: {output_dim}")
+
+        size_map = {192: "tiny", 384: "small", 768: "base", 1024: "large"}
 
         super().__init__(
-            model_name="fm4cs_encoder",
+            model_name=f"thor_{size_map[embed_dim]}_encoder",
             encoder_weights=encoder_weights,
             input_bands=input_bands,
             input_size=input_size,
             embed_dim=embed_dim,  # my_model_embed_dim, fixed parameters
-            output_dim=len(available_groups) * embed_dim,
+            output_dim=output_dim,
             output_layers=output_layers,
             pyramid_output=False,
             download_url=download_url,
             multi_temporal=False,  # wether support multi-temporal, fixed parametersfixed parameters
             multi_temporal_output=False,  # wether the output of the model has a temporal dimension
         )
+        logger.info(f"Available groups: {available_groups}")
+        self.min_gsd = min([params["GSD"] for params in self.channels.values()])
 
         self.ind_patch_embed = IndFlexiPatchEmbed(
             ground_covers=[self.ground_cover],
@@ -803,7 +884,7 @@ class FM4CS_Encoder(Encoder):
             patch_size_seqs=patch_size_seqs,
         )
 
-        self.aggr_type = aggr_type
+        # Initialize embedding
         self.num_heads = num_heads
         self.embed_dim = embed_dim
         self.embed_prod = embed_prod
@@ -816,11 +897,9 @@ class FM4CS_Encoder(Encoder):
         self.embed_patch_size = embed_patch_size
         self.patch_size_embed_dim = self.pos_embed_dim if embed_patch_size else 0
 
-        # Initialize embedding
-        self.band_embed, self.prod_embed = self.initialize_embedding(
-            self.band_embed_dim,
-            self.prod_embed_dim,
-        )
+        self.register_buffer("encoder_slopes", torch.tensor(get_slopes(num_heads)))
+
+        self.init_embeds()
 
         # Initialize transformer blocks
         self.blocks = nn.ModuleList([
@@ -833,18 +912,15 @@ class FM4CS_Encoder(Encoder):
             )
             for i in range(depth)
         ])
-        # Monkey patch the forward method of each block to use alibi attention
-        # and the forward method of the attention module to use alibi attention
-        for i, block in enumerate(self.blocks):
-            block.forward = types.MethodType(block_alibi_forward, block)
-            block.attn.forward = types.MethodType(attention_alibi_forward, block.attn)
-
         self.norm = norm_layer(embed_dim)
 
-        # Get slopes for alibi attention
-        self.register_buffer("encoder_slopes", torch.tensor(get_slopes(num_heads)))
-
         self.initialize_weights()
+
+    def init_embeds(self):
+        self.band_embed, self.prod_embed = self.initialize_embedding(
+            self.band_embed_dim,
+            self.prod_embed_dim,
+        )
 
     def validate_group(self, groups):
         valid_groups = {}
@@ -880,7 +956,6 @@ class FM4CS_Encoder(Encoder):
                 valid_groups[f"group{group_idx}"].append(product_band)
                 found_bands.append(product_band)
 
-        print(f"Found bands: {found_bands}")
         # Remove bands from channels that are not present in the groups
         keys = list(self.channels.keys())
         remove_bands = set(keys) - set(found_bands)
@@ -1116,7 +1191,8 @@ class FM4CS_Encoder(Encoder):
                 p: min(p_sizes)
                 for p, p_sizes in self.ind_patch_embed.patch_size_seqs.items()
             },
-        )  # {'product:band': (B, N_n, D), ...}
+        )
+        # {'product:band': (B, N_n, D), ...}
 
         # Get available groups
         available_groups = self.get_available_groups(patch_embeds)
@@ -1126,14 +1202,14 @@ class FM4CS_Encoder(Encoder):
         channel_params = self.get_channel_params(patch_embeds, metadata, ground_cover)
 
         # Aggregate embeddings by group
-        group_embeds = self.aggregate_by_group(
-            patch_embeds, available_groups
-        )  # {'group0': (B, N_n, D), ...}
+        group_embeds = self.aggregate_by_group(patch_embeds, available_groups)
+        # {'group0': (B, N_n, D), ...}
 
         # Get auxiliary embeddings (positional, band)
         aux_embeds = self.get_encoder_auxilliary_embed(
             inp, available_groups, channel_params
-        )  # {'group0': (-1, N_n, D), ...}
+        )
+        # {'group0': (N_n, D), ...}
 
         # Combine group embeddings with auxiliary embeddings
         x = torch.cat(
@@ -1142,10 +1218,11 @@ class FM4CS_Encoder(Encoder):
                 for group_name in group_embeds.keys()
             ],
             dim=1,
-        )  # (B, T, D)
+        )
+        # (B, T, D)
 
         # Compute alibi attention bias
-        alibi = get_alibi_fm4cs(
+        alibi = get_alibi_thor(
             channel_params,
             available_groups,
             slopes=self.encoder_slopes,
@@ -1180,7 +1257,7 @@ class FM4CS_Encoder(Encoder):
             start_idx = 0
             out = []
             # Important that we iterate through this in the same order we encoded
-            for group_member in self.groups.values():
+            for group_member in self.available_groups.values():
                 if len(group_member) == 0:
                     continue
                 product_band = group_member[0]
@@ -1193,7 +1270,13 @@ class FM4CS_Encoder(Encoder):
                 x_ = x_.permute(0, 3, 1, 2)  # B, C, H, W
 
                 # Interpolate if needed
-                if num_patch != highest_num_patch:
+                if num_patch != highest_num_patch and self.output_aggr in [
+                    "concat",
+                    "mean",
+                    "sum",
+                    "max",
+                    "min",
+                ]:
                     x_ = F.interpolate(
                         x_,
                         size=(highest_num_patch, highest_num_patch),
@@ -1208,8 +1291,24 @@ class FM4CS_Encoder(Encoder):
                     f"Number of patches {start_idx} does not match number of patches in input {feature.shape[1]}"
                 )
 
-            # Concatenate all group features
-            out = torch.cat(out, dim=1)
+            if self.output_aggr == "concat":
+                # Concatenate all group features
+                out = torch.cat(out, dim=1)
+            elif self.output_aggr == "mean":
+                # Mean all group features
+                out = torch.mean(torch.stack(out, dim=0), dim=0)
+            elif self.output_aggr == "sum":
+                # Sum all group features
+                out = torch.sum(torch.stack(out, dim=0), dim=0)
+            elif self.output_aggr == "max":
+                # Max all group features
+                out = torch.max(torch.stack(out, dim=0), dim=0)[0]
+            elif self.output_aggr == "min":
+                # Min all group features
+                out = torch.min(torch.stack(out, dim=0), dim=0)[0]
+            elif isinstance(self.output_aggr, int):
+                # Select the group feature at the specified index
+                out = out[self.output_aggr]
             out_features.append(out)
 
         return out_features
@@ -1221,9 +1320,7 @@ class FM4CS_Encoder(Encoder):
     def load_encoder_weights(self, logger: Logger) -> None:
         pretrained_model = torch.load(
             self.encoder_weights, map_location="cpu", weights_only=True
-        )
-        if "state_dict" in pretrained_model:
-            pretrained_model = pretrained_model["state_dict"]
+        )["state_dict"]
         prefix = "mae."
         k = pretrained_model.keys()
         renamed_keys = {
@@ -1242,23 +1339,61 @@ class FM4CS_Encoder(Encoder):
                 )
             else:
                 pretrained_encoder[name] = pretrained_model[renamed_keys[name]]
+        unused_keys = set(renamed_keys.keys()) - set(pretrained_encoder.keys())
+        for key in unused_keys:
+            if key in renamed_keys:
+                # These are keys that were in the pretrained model but not used,
+                # typically decoder weights.
+                logger.debug(f"Unused key {key} in pretrained model")
+            else:
+                logger.warning(f"Key {key} not found in pretrained model")
+
+        if missing:
+            logger.warning(
+               f"Some keys from the pretrained model were not found in the current model: {missing}"
+            )
+
+        if incompatible_shape:
+            logger.warning(
+                f"Some parameters have incompatible shapes: {incompatible_shape}"
+            )
+            raise ValueError("Incompatible parameter shapes found, have you loaded the correct size model?")
 
         self.load_state_dict(pretrained_encoder, strict=False)
         self.parameters_warning(missing, incompatible_shape, logger)
+        logger.info("Loaded encoder weights successfully.")
 
-    def _preprocess_input(self, x: dict[str, torch.Tensor]) -> dict[str, torch.Tensor]:
-        """Preprocess input data for the model.
+    # def _preprocess_input(self, x):
+    #     """Preprocess input data for the model."""
+    #     # Concatenate all modalities
+    #     x = torch.concat([x[modality] for modality in x.keys()], dim=1)
 
-        Args:
-            x: Input data dictionary with modalities as keys and tensors as values
+    #     x = {
+    #         channel: F.interpolate(
+    #             x[:, [i], :, :],
+    #             (
+    #                 int(self.ground_cover / self.channels[channel]["GSD"]),
+    #                 int(self.ground_cover / self.channels[channel]["GSD"]),
+    #             ),
+    #             mode="bilinear",
+    #         )
+    #         for i, channel in enumerate(self.bands)
+    #     }
 
-        Returns:
-            Dictionary mapping channel names to appropriately sized tensors
-        """
+    #     return x
+
+    def _preprocess_input(self, x):
+        """Preprocess input data for the model."""
         # Concatenate all modalities
+        # print(f"x keys: {x.keys()}")
+        # print(f"x shapes before concat: {[x[modality].shape for modality in x.keys()]}")
         x = torch.concat([x[modality] for modality in x.keys()], dim=1)
+        
+        # Ensure x has batch dimension
+        # print(f"x.dim() before unsqueeze: {x.dim()}")
+        if x.dim() != 3:
+            x = x.squeeze(2)
 
-        # Resize each band to its appropriate resolution based on GSD
         x = {
             channel: F.interpolate(
                 x[:, [i], :, :],
@@ -1266,6 +1401,7 @@ class FM4CS_Encoder(Encoder):
                     int(self.ground_cover / self.channels[channel]["GSD"]),
                     int(self.ground_cover / self.channels[channel]["GSD"]),
                 ),
+                mode="bilinear",
             )
             for i, channel in enumerate(self.bands)
         }
@@ -1273,7 +1409,7 @@ class FM4CS_Encoder(Encoder):
         return x
 
     def forward(self, x: dict[str, torch.Tensor]) -> list[torch.Tensor]:
-        """Forward pass of the encoder.
+        """Foward pass of the encoder.
 
         Args:
             x (dict[str, torch.Tensor]): encoder's input structured as a dictionary:
@@ -1293,3 +1429,100 @@ class FM4CS_Encoder(Encoder):
         outputs, channel_params = self.forward_intermediates(x)
         outputs = self._post_process(outputs, channel_params=channel_params)
         return outputs
+    
+_large_cfg = {
+    "embed_dim": 1024,
+    "depth": 24,
+    "num_heads": 16,
+    "band_embed_dim": 256,
+}
+
+_base_cfg = {
+    "embed_dim": 768,
+    "depth": 12,
+    "num_heads": 12,
+    "band_embed_dim": 128,
+}
+
+_small_cfg = {
+    "embed_dim": 384,
+    "depth": 12,
+    "num_heads": 6,
+    "band_embed_dim": 64,
+}
+
+_tiny_cfg = {
+    "embed_dim": 192,
+    "depth": 12,
+    "num_heads": 3,
+    "band_embed_dim": 32,
+}
+
+def thor_tiny_encoder(**kwargs) -> THOR_Encoder:
+    """THOR Tiny Encoder with Alibi Attention and Flexivit Patch Embedding V1
+
+    Args:
+        **kwargs: keyword arguments for the THOR_Encoder class
+
+    Returns:
+        THOR_Encoder: THOR Tiny Encoder with Alibi Attention and Patch Embedding V1
+    """
+    model = THOR_Encoder(
+        **_tiny_cfg,
+        **kwargs,
+    )
+    return model
+
+def thor_small_encoder(**kwargs) -> THOR_Encoder:
+    """THOR Small Encoder with Alibi Attention and Flexivit Patch Embedding V1
+
+    Args:
+        **kwargs: keyword arguments for the THOR_Encoder class
+
+    Returns:
+        THOR_Encoder: THOR Small Encoder with Alibi Attention and Flexivit Patch Embedding V1
+    """
+    model = THOR_Encoder(
+        **_small_cfg,
+        **kwargs,
+    )
+    return model
+
+
+def thor_base_encoder(**kwargs) -> THOR_Encoder:
+    """THOR Base Encoder with Alibi Attention and Flexivit Patch Embedding V1
+
+    Args:
+        **kwargs: keyword arguments for the THOR_Encoder class
+
+    Returns:
+        THOR_Encoder: THOR Base Encoder with Alibi Attention and Flexivit Patch Embedding V1
+    """
+    model = THOR_Encoder(
+        **_base_cfg,
+        **kwargs,
+    )
+    return model
+
+def thor_large_encoder(**kwargs) -> THOR_Encoder:
+    """THOR Large Encoder with Alibi Attention and Flexivit Patch Embedding V1
+
+    Args:
+        **kwargs: keyword arguments for the THOR_Encoder class
+
+    Returns:
+        THOR_Encoder: THOR Large Encoder with Alibi Attention and Flexivit Patch Embedding V1
+    """
+    model = THOR_Encoder(
+        **_large_cfg,
+        **kwargs,
+    )
+    return model
+
+
+__all__ = [
+    "thor_tiny_encoder",
+    "thor_small_encoder",
+    "thor_base_encoder",
+    "thor_large_encoder",
+]

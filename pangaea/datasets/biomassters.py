@@ -169,7 +169,7 @@ class BioMassters(RawGeoFMDataset):
                     'sar' : imgs_s1,
                     },
             'target': target,  
-            'metadata': {'masks':mask}
+            'metadata': {'masks':mask, 'filename': fname}
         }
 
     # @staticmethod

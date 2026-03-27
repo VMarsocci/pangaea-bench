@@ -13,4 +13,24 @@ use_final_ckpt: false
 finetune: false
 ckpt_dir: ???
 
+# Optional cross-testing overrides
+root_path: null
+test_log_name: null
 
+# PREDICTION OUTPUT
+# save_predictions: save raw model output as GeoTIFF (one file per sample, same name as input)
+# save_visualizations: save RGB comparison panels as PNG (input | GT | prediction [| error])
+# save_output_dir: root directory for outputs; defaults to the experiment directory if null
+# max_samples_to_visualize: max samples to save (-1 = all)
+# overwrite: when false, outputs are stored in subdirectories tagged by step name (e.g., epoch_0)
+save_predictions: false
+save_visualizations: false
+save_output_dir: null
+max_samples_to_visualize: -1
+overwrite: true
+
+
+defaults:
+  - dataset: null
+  - preprocessing: null
+  - _self_

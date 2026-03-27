@@ -165,10 +165,21 @@ class SpectralGPT_Encoder(Encoder):
         self.parameters_warning(missing, incompatible_shape, logger)
 
     def forward(self, image: dict[str, torch.Tensor]) -> list[torch.Tensor]:
-        # input image of shape B C H W
-        x = image["optical"].unsqueeze(-3)  # B C H W -> B C 1 H W
+        x = image["optical"]
+        if x.dim() == 4:
+            x = x.unsqueeze(-3)  # B C H W -> B C 1 H W
+        elif x.dim() != 5:
+            raise ValueError(
+                f"SpectralGPT expects optical input with 4 or 5 dimensions, got shape {tuple(x.shape)}"
+            )
 
-        x = x.permute(0, 2, 1, 3, 4)  # for this model: B, T, C, H, W
+        if x.shape[2] != 1:
+            raise ValueError(
+                "SpectralGPT is configured as a single-temporal encoder and expects input shaped (B, C, 1, H, W). "
+                f"Got {tuple(x.shape)}"
+            )
+
+        x = x.permute(0, 2, 1, 3, 4)  # B C 1 H W -> B 1 C H W
         x = self.patch_embed(x)
         N, T, L, C = x.shape  # T: number of bands; L: spatial
 

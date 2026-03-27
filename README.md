@@ -40,6 +40,23 @@
  - [22/04/2025] on EarthDay, PANGAEA was officialy adopted to benchmark TerraMind. Read the [news](https://www.linkedin.com/posts/simonetta-cheli-7669879b_earthday-earthobservation-activity-7320439907028467712-LSzl?utm_source=share&utm_medium=member_desktop&rcm=ACoAACdT8q0BDNWYKAdDYGUe_X4fQOzSHO8jgAs) and the [pre-print](https://arxiv.org/abs/2504.11171). We will release the benchmarking code in PANGAEA very soon!
  - [05/12/2024] the [pre-print](https://arxiv.org/abs/2412.04204) is out!
 
+## 🆕 Local updates in this fork (March 2026)
+
+This repository includes additional local extensions for experimentation:
+
+- **New encoder configs**
+   - THOR encoder: `configs/encoder/thor.yaml`
+   - Prithvi-2 variants: `configs/encoder/prithvi2_100m.yaml`, `configs/encoder/prithvi2_300m.yaml`, `configs/encoder/prithvi2_600m.yaml`
+
+- **New LAI dataset integration**
+   - Dataset class: `pangaea/datasets/lai.py`
+   - Dataset configs: all `configs/dataset/lai*.yaml` variants (single/dual S1-S2 and site-specific configs)
+
+- **Cross-testing support**
+   - Wrapper CLI: `cross_test.py`
+   - Test-time cross-dataset override support in `pangaea/run.py` and `configs/test.yaml`
+   - New test overrides: `cross_test_dataset`, `cross_test_root_path`, `cross_test_preprocessing`, `test_log_name`
+
 ## 📚 Introduction
 
 While geospatial foundation models (GFMs) have proliferated rapidly, their evaluations remain inconsistent and narrow. Existing works often utilize suboptimal downstream datasets (e.g., EuroSAT) and tasks (e.g., land cover classification), which constrain comparability and real-world usability. Additionally, a lack of diversity in evaluation protocols, including image resolution and sensor types, further complicates the extensive assessments of GFM performance. 
@@ -411,6 +428,93 @@ If you want to just run an evaluation, indicate the `ckpt_dir` where the checkpo
 ```
 torchrun pangaea/run.py --config-name=test ckpt_dir=path_to_ckpt_dir
 ```
+
+### 🖼️ Prediction visualization outputs
+
+You can save raw predictions and/or PNG comparison panels during evaluation.
+
+Available Hydra overrides:
+- `save_predictions` (bool): save raw output maps as `.tif`
+- `save_visualizations` (bool): save comparison panels as `.png`
+- `save_output_dir` (str or null): output root (defaults to experiment dir)
+- `max_samples_to_visualize` (int): max number of samples to save (`-1` = all)
+- `overwrite` (bool): when `false`, outputs are written in a step-tagged subfolder (e.g. `final_model`, `test_model`)
+- `task.evaluator.rgb_bands` (list): channel indices used for RGB quicklook (default `[2, 1, 0]`)
+
+Output structure:
+- `<save_output_dir>/predictions/*.tif`
+- `<save_output_dir>/visualizations/*.png`
+
+Test-only example:
+```
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=test \
+   ckpt_dir=/path/to/experiment_dir \
+   save_predictions=true \
+   save_visualizations=true \
+   save_output_dir=/path/to/output_dir \
+   max_samples_to_visualize=100 \
+   overwrite=true
+```
+
+Train+eval example (validation visualizations during training):
+```
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=hlsburnscars encoder=remoteclip decoder=seg_upernet \
+   preprocessing=seg_default criterion=cross_entropy task=segmentation \
+   task.evaluator.save_predictions=true \
+   task.evaluator.save_visualizations=true \
+   task.evaluator.max_samples_to_visualize=50
+```
+
+### 🔁 Cross-testing on a different dataset
+
+You can evaluate a trained checkpoint directory on another dataset config without changing the original training config, by simply overriding the dataset config from the command line.
+
+Simple command to cross-evaluate a model on sen1floods11:
+```
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=test \
+   ckpt_dir=/path/to/experiment_dir \
+   dataset=sen1floods11
+```
+
+Example with more options (overriding datset, preprocessing and root_path):
+```
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=test \
+   ckpt_dir=/path/to/experiment_dir \
+   dataset=sen1floods11 \
+   preprocessing=seg_resize \
+   root_path=alternative/path/to/dataset \
+   save_predictions=true \
+   test_log_name=test_sen1.log \
+   save_visualizations=true
+```
+
+Concrete example: training on Sen1Floods11 only on Europe and America tiles, testing on Asia and Africa.
+```
+# training on euramerica
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py --config-name=train \
+    dataset=sen1floods11_euramerica \
+    encoder=terramind_tiny \
+    decoder=seg_upernet \
+    preprocessing=seg_default \
+    criterion=dice \
+    task=segmentation \
+    finetune=False
+
+# testing on africa
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py --config-name=test \
+    ckpt_dir=work-dir/20260324_142305_0589a0_terramind_tiny_seg_upernet_sen1floods11_euramerica \
+    cross_test_dataset=sen1floods11_africa \
+    save_visualizations=true
+```
+
+
+Notes:
+- Any extra Hydra overrides can be appended at the end of the command.
 
 ## ✏️ Contributing
 We appreciate all contributions. Please refer to [Contributing Guidelines](CONTRIBUTING.md).

@@ -133,6 +133,7 @@ class DynamicEarthNet(RawGeoFMDataset):
         return len(self.files)
 
     def __getitem__(self, index):
+        filename = os.path.basename(self.labels[index])
         images = [np.load(seq) for seq in self.all_sequences[index]]
         images = torch.from_numpy(np.stack(images, axis=0)).transpose(0, 1).float()
         label = torch.from_numpy(np.load(os.path.join(self.root_path, self.labels[index][1:].replace('tif', 'npy')))).long()
@@ -142,7 +143,7 @@ class DynamicEarthNet(RawGeoFMDataset):
                 'optical': images,
             },
             'target': label,
-            'metadata': {}
+            'metadata': {'filename': filename}
         }
 
         return output

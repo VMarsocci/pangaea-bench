@@ -729,6 +729,13 @@ class RegTrainer(Trainer):
         Returns:
             torch.Tensor: loss value.
         """
+
+        # sparse backprop
+        if self.train_loader.dataset.dataset_name == "AGBDLite" :
+            valid_mask = (target != self.train_loader.dataset.ignore_index)
+            logits = logits[valid_mask.unsqueeze(1)].unsqueeze(1)
+            target = target[valid_mask]
+
         return self.criterion(logits.squeeze(dim=1), target)
 
     @torch.no_grad()
@@ -741,6 +748,12 @@ class RegTrainer(Trainer):
             logits (torch.Tensor): logits from the decoder.
             target (torch.Tensor): target tensor.
         """
+
+        # sparse backprop
+        if self.train_loader.dataset.dataset_name == "AGBDLite" :
+            valid_mask = (target != self.train_loader.dataset.ignore_index)
+            logits = logits[valid_mask.unsqueeze(1)].unsqueeze(1)
+            target = target[valid_mask]
 
         mse = F.mse_loss(logits.squeeze(dim=1), target)  
         self.training_metrics["MSE"].update(mse.item())
