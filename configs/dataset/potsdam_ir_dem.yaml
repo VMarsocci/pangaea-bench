@@ -1,0 +1,73 @@
+_target_: pangaea.datasets.potsdam_ir_dem.PotsdamIRDEM
+dataset_name: Potsdam_IR_DEM
+root_path: ./data/potsdam_ir_dem
+download_url: https://seafile.projekt.uni-hannover.de/f/429be50cc79d423ab6c4/
+download_password: CjwcipT4-P8g
+auto_download: True
+
+img_size: 256
+multi_temporal: 1
+multi_modal: True
+
+ignore_index: 255
+num_classes: 6
+classes:
+  - Impervious surfaces
+  - Building
+  - Low vegetation
+  - Tree
+  - Car
+  - Clutter/background
+
+distribution:
+  - 0.28696548
+  - 0.2480703
+  - 0.22074268
+  - 0.15313488
+  - 0.01706169
+  - 0.04752915
+
+bands:
+  optical:
+    - B2
+    - B3
+    - B4
+    - B8
+  dem:
+    - DEM
+
+data_mean:
+  optical:
+    - 86.55175021564328
+    - 92.54522770394736
+    - 85.91596489181286
+    - 97.63989512207603
+  dem:
+    - 45.54897045601077
+
+data_std:
+  optical:
+    - 35.791070124554736
+    - 35.37055381248052
+    - 36.77709950498699
+    - 36.24336011192631
+  dem:
+    - 54.89801163061976
+
+data_max:
+  optical:
+    - 255.0
+    - 255.0
+    - 255.0
+    - 255.0
+  dem:
+    - 255.0
+
+data_min:
+  optical:
+    - 3.0
+    - 1.0
+    - 1.0
+    - 0.0
+  dem:
+    - 0.0
