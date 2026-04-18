@@ -1,0 +1,47 @@
+_target_: pangaea.datasets.espeletia_chm.EspeletiaCHM
+dataset_name: EspeletiaCHM
+root_path: ./data/espeletia_scene_cls_chm
+download_url: "https://zenodo.org/records/19205335/files/espeletia_scene_cls_chm.zip?download=1"
+auto_download: True
+
+ignore_index: -1
+multi_temporal: False
+multi_modal: True
+img_size: 256
+num_classes: 1
+classes:
+  - regression
+distribution:
+  - 1.
+
+bands:
+  optical:
+    - B2
+    - B3
+    - B4
+    - B5
+    - B8
+    - TIR
+  dem:
+    - DEM
+
+data_mean:
+  optical: [0.028378433649063606, 0.05450038897294758, 0.04678368903975114, 0.12560249753587674, 0.23869662450763804, 9.062771890997293]
+  dem: [3288.083191899558]
+
+data_std:
+  optical: [0.01546084932308123, 0.022091811611785816, 0.026684032542662852, 0.046507948433895815, 0.11464352136109723, 1.387636881099775]
+  dem: [6.71144809712252]
+
+data_min:
+  optical: [0.0, 0.0014502870617434382, 2.9671751167192895e-11, 0.009727470576763153, 2.9504121368262304e-10, 4.896692752838135]
+  dem: [3273.9052734375]
+
+data_max:
+  optical: [0.21756204962730408, 0.36375880241394043, 0.3691379725933075, 0.7098506093025208, 0.8454317450523376, 14.995451927185059]
+  dem: [3314.7919921875]
+
+# Citation
+# Jorge L., R., & Victor, A.-M. (2026). Espeletia Scene Classification and Canopy Height
+# Dataset from UAV Multispectral Imagery in a Colombian Páramo [Data set].
+# Zenodo. https://doi.org/10.5281/zenodo.19205335
