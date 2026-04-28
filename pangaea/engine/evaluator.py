@@ -54,7 +54,7 @@ class Evaluator:
         sliding_inference_batch: int = None,
         use_wandb: bool = False,
         wandb_offline: bool = False,
-        wandb_offline_sync_communication_dir: str | Path = None,
+        wandb_offline_sync_communication_dir: str | Path = "~/.wandb_osh_communication",
         # ---- visualization flags ----
         save_predictions: bool = False,
         save_visualizations: bool = False,

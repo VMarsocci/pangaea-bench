@@ -34,7 +34,7 @@ class Trainer:
         eval_interval: int,
         log_interval: int,
         best_metric_key: str,
-        wandb_offline_sync_communication_dir: str | pathlib.Path = "",
+        wandb_offline_sync_communication_dir: str | pathlib.Path = "~/.wandb_osh_communication",
     ):
         """Initialize the Trainer.
 
