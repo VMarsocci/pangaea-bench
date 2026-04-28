@@ -160,6 +160,53 @@ We provide several ways to install the dependencies.
    pip install --no-build-isolation --no-deps -e .
    ```
 
+### 📡 Offline Weights & Biases (wandb) Syncing
+
+This repository supports offline wandb logging, which is useful when running experiments on compute clusters without internet access. The `wandb-osh` (Offline Sync Hook) module enables automatic syncing of wandb logs from offline compute nodes to wandb via a head node with internet access.
+
+#### How it Works
+
+1. **Compute nodes** (without internet): Set `wandb_offline=true` during training. The hook automatically creates sync request files in a shared communication directory (`~/.wandb_osh_communication` by default).
+2. **Head node** (with internet): Run the `wandb-osh` command, which monitors the communication directory and synchronizes runs to wandb whenever a sync request is detected.
+
+#### Setup
+
+To enable offline mode during training on compute nodes, add the `wandb_offline=true` flag:
+
+```bash
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=hlsburnscars \
+   encoder=remoteclip \
+   decoder=seg_upernet \
+   preprocessing=seg_default \
+   criterion=cross_entropy \
+   task=segmentation \
+   wandb_offline=true
+```
+
+You can also customize the communication directory where sync requests are written. By default, it uses `~/.wandb_osh_communication`. To use a different directory (useful for shared file systems on clusters), specify it via the `wandb_offline_sync_communication_dir` parameter:
+
+```bash
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=hlsburnscars \
+   encoder=remoteclip \
+   decoder=seg_upernet \
+   preprocessing=seg_default \
+   criterion=cross_entropy \
+   task=segmentation \
+   wandb_offline=true \
+   wandb_offline_sync_communication_dir=/shared/filesystem/.wandb-osh
+```
+
+On your **head node with internet access**, start the sync daemon, pointing it to the same communication directory:
+
+```bash
+wandb-osh --communication-dir /shared/filesystem/.wandb-osh
+```
+
+This will monitor the specified communication directory and automatically sync runs. For additional options and advanced usage, see `wandb-osh --help` or the [wandb-osh documentation](https://github.com/klieret/wandb-offline-sync-hook).
 
 ## 🏋️ Training
 

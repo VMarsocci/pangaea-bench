@@ -33,4 +33,7 @@ dependencies:
   - hydra-core
   - h5py
   - albumentations
+  - pip
+  - pip:
+      - wandb-osh
 

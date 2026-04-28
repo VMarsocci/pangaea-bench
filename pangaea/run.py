@@ -6,6 +6,7 @@ import time
 
 import hydra
 import torch
+import wandb_osh
 from hydra.conf import HydraConf
 from hydra.core.hydra_config import HydraConfig
 from hydra.utils import instantiate
@@ -29,6 +30,8 @@ from pangaea.utils.utils import (
     get_generator,
     seed_worker,
 )
+
+wandb_osh.set_log_level("ERROR")
 
 
 def get_exp_info(hydra_config: HydraConf) -> dict[str, str]:
@@ -102,6 +105,7 @@ def main(cfg: DictConfig) -> None:
                 project="geofm-bench",
                 name=exp_name,
                 config=wandb_cfg,
+                mode="offline" if cfg.get("wandb_offline", False) else "online",
             )
             cfg["wandb_run_id"] = wandb.run.id
         OmegaConf.save(cfg, config_log_dir / "config.yaml")
@@ -120,6 +124,8 @@ def main(cfg: DictConfig) -> None:
         # preserve test-time runtime options from test config
         for key in [
             "use_wandb",
+            "wandb_offline",
+            "wandb_offline_sync_communication_dir",
             "use_final_ckpt",
             "test_batch_size",
             "test_num_workers",
@@ -162,6 +168,7 @@ def main(cfg: DictConfig) -> None:
                 config=wandb_cfg,
                 id=cfg.get("wandb_run_id"),
                 resume="allow",
+                mode="offline" if cfg.get("wandb_offline", False) else "online",
             )
 
     logger = init_logger(logger_path, rank=rank)
