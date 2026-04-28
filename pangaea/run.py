@@ -124,6 +124,8 @@ def main(cfg: DictConfig) -> None:
         # preserve test-time runtime options from test config
         for key in [
             "use_wandb",
+            "wandb_offline",
+            "wandb_offline_sync_communication_dir",
             "use_final_ckpt",
             "test_batch_size",
             "test_num_workers",
