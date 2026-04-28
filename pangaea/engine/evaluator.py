@@ -409,12 +409,14 @@ class KNNClassificationEvaluator(Evaluator):
         multi_label: bool = False,
     ) -> None:
         super().__init__(
-            val_loader,
-            exp_dir,
-            device,
-            use_wandb,
-            wandb_offline,
-            wandb_offline_sync_communication_dir,
+            val_loader=val_loader,  
+            exp_dir=exp_dir,  
+            device=device,  
+            inference_mode=inference_mode,  
+            sliding_inference_batch=sliding_inference_batch,  
+            use_wandb=use_wandb,  
+            wandb_offline=wandb_offline,  
+            wandb_offline_sync_communication_dir=wandb_offline_sync_communication_dir,  
         )
         self.multi_label = multi_label
         self.logger = logging.getLogger()
