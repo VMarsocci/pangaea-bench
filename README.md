@@ -130,7 +130,7 @@ cd pangaea-bench
 
 **Dependencies**
 
-The project uses [uv](https://docs.astral.sh/uv/) for environment and dependency management. Install uv (one-liner from the docs), then:
+The project uses [uv](https://docs.astral.sh/uv/) for environment and dependency management & [just](https://github.com/casey/just) for the command runner. [Install uv](https://docs.astral.sh/uv/getting-started/installation/#installation-methods) , Install just (Optional) with `uv tool install rust-just`, then:
 
 ```bash
 just setup
@@ -143,9 +143,9 @@ That runs `uv sync --all-groups` plus installs pre-commit hooks. `uv sync`:
 3. Installs all locked runtime + dev dependencies.
 4. Installs `pangaea` itself in editable mode.
 
-PyTorch is installed from PyPI's default `torch` wheel, which bundles CUDA at build time and falls back to CPU automatically when no NVIDIA driver is present. No CPU/GPU split, no extras to remember; the same lockfile works on a laptop and on a GPU box.
+PyTorch is installed from PyPI's default `torch` wheel, which bundles CUDA at build time and falls back to CPU automatically when no NVIDIA driver is present; the lockfile works on a laptop and on a GPU box.
 
-Run things through uv (no `activate` needed):
+Run things through uv :
 
 ```bash
 uv run pytest
