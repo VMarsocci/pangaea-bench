@@ -9,8 +9,6 @@ repos:
       - id: check-merge-conflict
       - id: check-toml
       - id: check-yaml
-      - id: end-of-file-fixer
-      - id: trailing-whitespace
       - id: mixed-line-ending
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
