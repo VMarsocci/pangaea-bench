@@ -62,57 +62,6 @@ module-name = "pangaea"
 module-root = ""
 source-include = ["configs/**", "tests/**"]
 
-[tool.ruff]
-line-length = 100
-target-version = "py311"
-src = ["pangaea", "tests"]
-extend-exclude = ["pangaea/encoders/scalemae_encoder.py"]
-
-[tool.ruff.lint]
-select = ["E", "F", "I", "B", "UP"]
-# Legacy-code debt: keep these as warnings off until the original code is cleaned up.
-# Contributors are encouraged to remove entries here as they touch nearby files.
-ignore = [
-    "E402",
-    "E501",
-    "E731",
-    "E741",
-    "B006",
-    "B007",
-    "B008",
-    "B028",
-    "B904",
-    "B905",
-    "F811",
-    "F841",
-    "UP031",
-]
-
-[tool.ty.src]
-include = ["pangaea", "tests"]
-
-[tool.ty.rules]
-# Existing untyped code: keep ty advisory until type hints are added.
-# Each entry is a candidate to remove as the project gradually adds annotations.
-unresolved-import = "ignore"
-unresolved-attribute = "ignore"
-unknown-argument = "ignore"
-invalid-argument-type = "ignore"
-invalid-assignment = "ignore"
-invalid-method-override = "ignore"
-invalid-parameter-default = "ignore"
-invalid-return-type = "ignore"
-invalid-type-form = "ignore"
-missing-argument = "ignore"
-no-matching-overload = "ignore"
-not-iterable = "ignore"
-not-subscriptable = "ignore"
-call-non-callable = "ignore"
-unsupported-operator = "ignore"
-possibly-missing-attribute = "ignore"
-possibly-missing-implicit-call = "ignore"
-possibly-missing-submodule = "ignore"
-
 [tool.pytest.ini_options]
 minversion = "8.0"
 addopts = ["-ra", "--strict-markers"]
@@ -125,6 +74,4 @@ dev = [
     "pre-commit>=4.0",
     "pytest>=8.0",
     "pytest-cov>=5.0",
-    "ruff>=0.14",
-    "ty>=0.0.1",
 ]

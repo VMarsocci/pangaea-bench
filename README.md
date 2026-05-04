@@ -130,13 +130,14 @@ cd pangaea-bench
 
 **Dependencies**
 
-The project uses [uv](https://docs.astral.sh/uv/) for environment and dependency management & [just](https://github.com/casey/just) for the command runner. [Install uv](https://docs.astral.sh/uv/getting-started/installation/#installation-methods) , Install just (Optional) with `uv tool install rust-just`, then:
+The project uses [uv](https://docs.astral.sh/uv/) for environment and dependency management. [Install uv](https://docs.astral.sh/uv/getting-started/installation/#installation-methods), then:
 
 ```bash
-just setup
+uv sync --all-groups
+uv run pre-commit install --install-hooks
 ```
 
-That runs `uv sync --all-groups` plus installs pre-commit hooks. `uv sync`:
+`uv sync`:
 
 1. Installs a matching Python interpreter (3.11, 3.12, or 3.13) if missing.
 2. Creates `.venv/` in the project root.
@@ -145,19 +146,12 @@ That runs `uv sync --all-groups` plus installs pre-commit hooks. `uv sync`:
 
 PyTorch is installed from PyPI's default `torch` wheel, which bundles CUDA at build time and falls back to CPU automatically when no NVIDIA driver is present; the lockfile works on a laptop and on a GPU box.
 
-Run things through uv :
+Run things through uv:
 
 ```bash
 uv run pytest
+uv run pre-commit run --all-files
 uv run torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py ...
-```
-
-Other recipes:
-
-```bash
-just lint     # ruff + ty + file hygiene via pre-commit
-just test     # pytest
-just run ...  # full torchrun example
 ```
 
 Adding or removing a dependency:

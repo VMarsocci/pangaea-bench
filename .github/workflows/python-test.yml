@@ -15,8 +15,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  lint:
-    name: Lint and type check
+  pre-commit:
+    name: Pre-commit
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -25,9 +25,7 @@ jobs:
           enable-cache: true
           python-version: "3.11"
       - run: uv sync --all-groups
-      - run: uv run ruff check .
-      - run: uv run ruff format --check .
-      - run: uv run ty check
+      - run: uv run pre-commit run --all-files --show-diff-on-failure
 
   test:
     name: Tests (Python ${{ matrix.python-version }})
