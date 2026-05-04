@@ -59,7 +59,7 @@ This repository includes additional local extensions for experimentation:
 
 ## 📚 Introduction
 
-While geospatial foundation models (GFMs) have proliferated rapidly, their evaluations remain inconsistent and narrow. Existing works often utilize suboptimal downstream datasets (e.g., EuroSAT) and tasks (e.g., land cover classification), which constrain comparability and real-world usability. Additionally, a lack of diversity in evaluation protocols, including image resolution and sensor types, further complicates the extensive assessments of GFM performance. 
+While geospatial foundation models (GFMs) have proliferated rapidly, their evaluations remain inconsistent and narrow. Existing works often utilize suboptimal downstream datasets (e.g., EuroSAT) and tasks (e.g., land cover classification), which constrain comparability and real-world usability. Additionally, a lack of diversity in evaluation protocols, including image resolution and sensor types, further complicates the extensive assessments of GFM performance.
 
 To bridge this gap, we propose a standardized evaluation protocol that incorporates a wide-ranging selection of datasets, tasks, resolutions, and sensor types, establishing a robust and widely applicable benchmark for GFMs.
 
@@ -130,35 +130,43 @@ cd pangaea-bench
 
 **Dependencies**
 
-We provide several ways to install the dependencies.
+The project uses [uv](https://docs.astral.sh/uv/) for environment and dependency management. Install uv (one-liner from the docs), then:
 
-1. **Using either Conda or Mamba**:
-    ```
-    conda env create -f environment.yaml
-    conda activate pangaea-bench
-    ```
+```bash
+just setup
+```
 
-    Optional: install [Mamba](https://github.com/conda-forge/miniforge/releases/) for faster resolution times
-    ```
-    wget https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Mambaforge-24.3.0-0-Linux-x86_64.sh
-    sh ./Mambaforge-24.3.0-0-Linux-x86_64.sh
+That runs `uv sync --all-groups` plus installs pre-commit hooks. `uv sync`:
 
-    mamba env create -f environment.yaml
-    mamba activate pangaea-bench
-    ```
+1. Installs a matching Python interpreter (3.11, 3.12, or 3.13) if missing.
+2. Creates `.venv/` in the project root.
+3. Installs all locked runtime + dev dependencies.
+4. Installs `pangaea` itself in editable mode.
 
-2. **Using pip**, create a Python native virtual environment and install dependencies into it:
-   ```
-   export PANGAEA_PATH=/path/to/venv/pangaea-bench # change this
-   python3 -m venv ${PANGAEA_PATH}
-   source ${PANGAEA_PATH}/bin/activate
-   
-   pip install -r requirements.txt
-   ```
- **Then install the code repository as a development package**
-   ```
-   pip install --no-build-isolation --no-deps -e .
-   ```
+PyTorch is installed from PyPI's default `torch` wheel, which bundles CUDA at build time and falls back to CPU automatically when no NVIDIA driver is present. No CPU/GPU split, no extras to remember; the same lockfile works on a laptop and on a GPU box.
+
+Run things through uv (no `activate` needed):
+
+```bash
+uv run pytest
+uv run torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py ...
+```
+
+Other recipes:
+
+```bash
+just lint     # ruff + ty + file hygiene via pre-commit
+just test     # pytest
+just run ...  # full torchrun example
+```
+
+Adding or removing a dependency:
+
+```bash
+uv add <pkg>             # runtime
+uv add --group dev <pkg> # dev-only
+uv remove <pkg>
+```
 
 ### 📡 Offline Weights & Biases (wandb) Syncing
 
@@ -213,14 +221,14 @@ This will monitor the specified communication directory and automatically sync r
 To run experiments, please refer to `configs/train.yaml`. In it, in addition to some basic info about training (e.g. `finetune` for fine-tuning also the encoder, `limited_label_train` to train the model on a stratified subset of labels, `num_workers`, `batch_size` and so on), there are 5 different basic configs:
 - `dataset`: Information of downstream datasets such as image size, band_statistics, classes etc.
 - `decoder`: Downstream task decoder fine-tuning related parameters, like the type of architecture (e.g. UPerNet), which multi-temporal strategy to use, and other related hparams (e.g. nr of channels)
-- `encoder`: GFM encoder related parameters. `output_layers` is used for which layers are used for Upernet decoder.  
+- `encoder`: GFM encoder related parameters. `output_layers` is used for which layers are used for Upernet decoder.
 - `preprocessing`: Both preprocessing and augmentations steps required for the dataset, such as bands adaptation, normalization, resize/crop.
 - `task`: Information about the trainer and evaluator. Most of the parameters are overwritten in run. Trainer and evaluator can be used for segmentation (`SegTrainer`) or regression (`RegTrainer`). Different parameter like precision training (`precision`) can be set in it.
 
 
 Other 3 configs are used to set other training parameters:
 - `criterion`: in which you can choose the loss for the training. Consider that if you want to add a custom loss, you should add to `pangaea/utils/losses.py`. Currently, we support `cross_entropy`, `weigthed_cross_entropy`, `dice` and `mae` loss functions.
-- `lr_scheduler`: in which you can choose the scheduler. Consider that if you want to add a custom one, you should add to `pangaea/utils/schedulers.py`. 
+- `lr_scheduler`: in which you can choose the scheduler. Consider that if you want to add a custom one, you should add to `pangaea/utils/schedulers.py`.
 - `optimizer`: in which you can choose the optimizer. Consider that if you want to add a custom one, you should add to `pangaea/utils/optimizers.py`.
 
 
@@ -263,7 +271,7 @@ torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
 ```
 
 #### Multi-Temporal Semantic Segmentation
-- Multi-temporal decoder config (e.g. `configs/decoder/seg_upernet_mt_ltae.yaml` if you want to use `ltae` as a strategy to combine multi-temporal info) should be used. 
+- Multi-temporal decoder config (e.g. `configs/decoder/seg_upernet_mt_ltae.yaml` if you want to use `ltae` as a strategy to combine multi-temporal info) should be used.
 - In addition, in the dataset config, indicate the number of time frames, e.g., `multi_temporal: 6`
 
 An example of using SSL4EO-DINO on CropTypeMapping is as below
@@ -312,7 +320,7 @@ To overwrite parameters, please check the Single Temporal Semantic Segmentation 
 
 #### Single Temporal Regression
 
-The regression decoder (e.g. `configs/decoder/reg_upernet.yaml`) and the regression task (e.g. `configs/task/regression.yaml`) configs should be used. 
+The regression decoder (e.g. `configs/decoder/reg_upernet.yaml`) and the regression task (e.g. `configs/task/regression.yaml`) configs should be used.
 E.g. Prithvi encoder on BioMassters
 
 ```
@@ -330,7 +338,7 @@ To overwrite parameters, please check the Single Temporal Semantic Segmentation 
 
 #### Multi-Temporal Regression
 
-The multi-temporal regression decoder (e.g. `configs/decoder/reg_upernet_mt_ltae.yaml` or `configs/decoder/reg_upernet_mt_linear.yaml`) and the regression task (e.g. `configs/task/regression.yaml`) configs should be used. 
+The multi-temporal regression decoder (e.g. `configs/decoder/reg_upernet_mt_ltae.yaml` or `configs/decoder/reg_upernet_mt_linear.yaml`) and the regression task (e.g. `configs/task/regression.yaml`) configs should be used.
 
 Take Prithvi encoder on BioMassters as example:
 
@@ -425,9 +433,9 @@ torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
    finetune=True
 ```
 
-### 💻 Fully Supervised Baseline 
+### 💻 Fully Supervised Baseline
 
-The repo supports also training fully supervised baselines (i.e. UNet and ViT). To run these, follow the same command line rules as for other models. Keep in mind that setting finetune=True is necessary since this fully supervised approach trains the model from scratch. 
+The repo supports also training fully supervised baselines (i.e. UNet and ViT). To run these, follow the same command line rules as for other models. Keep in mind that setting finetune=True is necessary since this fully supervised approach trains the model from scratch.
 An example for single temporal semantic segmentation with UNet is provided (Sen1Floods11 dataset):
 ```
 torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
@@ -466,7 +474,7 @@ Refer to: [Adding a new downstream dataset](CONTRIBUTING.md#adding-a-new-downstr
 
 Refer to: [Adding a new geospatial foundation model](CONTRIBUTING.md#adding-a-new-geospatial-foundation-model)
 
-## 🏃 Evaluation 
+## 🏃 Evaluation
 
 An evaluation step is always run after the training.
 
@@ -587,13 +595,13 @@ If you find this work useful, please cite:
 
 ```
 @misc{marsocci2024pangaeaglobalinclusivebenchmark,
-      title={PANGAEA: A Global and Inclusive Benchmark for Geospatial Foundation Models}, 
+      title={PANGAEA: A Global and Inclusive Benchmark for Geospatial Foundation Models},
       author={Valerio Marsocci and Yuru Jia and Georges Le Bellier and David Kerekes and Liang Zeng and Sebastian Hafner and Sebastian Gerard and Eric Brune and Ritu Yadav and Ali Shibli and Heng Fang and Yifang Ban and Maarten Vergauwen and Nicolas Audebert and Andrea Nascetti},
       year={2024},
       eprint={2412.04204},
       archivePrefix={arXiv},
       primaryClass={cs.CV},
-      url={https://arxiv.org/abs/2412.04204}, 
+      url={https://arxiv.org/abs/2412.04204},
 }
 ```
 ##  Acknowledge

@@ -1,66 +1,46 @@
-# This workflow will install Python dependencies, run tests and lint with a single version of Python
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
-
-name: Tests
+name: CI
 
 on:
   push:
-    branches: ["main", "feature/test"]
+    branches: [main, "feature/**"]
   pull_request:
-    branches: ["main"]
-
-env:
-  CACHE_NUMBER: 0 # increase to reset cache manually
+    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
-    defaults:
-      run:
-        shell: bash -l {0}
-
+  lint:
+    name: Lint and type check
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
-      - name: Set up Python 3.10
-        uses: actions/setup-python@v5
+      - uses: astral-sh/setup-uv@v5
         with:
-          python-version: "3.10"
+          enable-cache: true
+          python-version: "3.11"
+      - run: uv sync --all-groups
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run ty check
 
-      - name: Lint with flake8
-        run: |
-          pip install flake8
-          # stop the build if there are Python syntax errors or undefined names
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics
-          # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics
-
-      - name: Create environment with mamba
-        uses: conda-incubator/setup-miniconda@v3
+  test:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
         with:
-          mamba-version: "*"
-          channels: pytorch, nvidia, conda-forge
-          activate-environment: gfm-bench8
-
-      - name: Set cache date
-        run: echo "DATE=$(date +'%Y%m%d')" >> $GITHUB_ENV
-      - uses: actions/cache@v4
-        with:
-          path: /usr/share/miniconda/envs/gfm-bench8
-          key: conda-${{ hashFiles('environment.yaml') }}-${{ env.DATE }}-${{ env.CACHE_NUMBER }}
-        id: cache
-
-      - name: Update environment
-        run: mamba env update -n gfm-bench8 -f environment.yaml
-        if: steps.cache.outputs.cache-hit != 'true'
-
-      - name: Check solution
-        run: |
-          mamba env export
-
-      - name: Test with pytest
-        run: |
-          python -m unittest tests.test_imports
+          enable-cache: true
+          python-version: ${{ matrix.python-version }}
+      - run: uv sync --all-groups
+      - run: uv run pytest tests/test_imports.py -v
