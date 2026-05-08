@@ -14,8 +14,8 @@ classes:
   - background
   - building
 distribution:
-  - 0.5
-  - 0.5
+  - 0.86466
+  - 0.13534
 
 bands:
   optical:

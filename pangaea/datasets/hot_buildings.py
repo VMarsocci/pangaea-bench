@@ -11,7 +11,7 @@ from PIL import Image
 
 from pangaea.datasets.base import RawGeoFMDataset
 
-_HF_REVISION = "65adb1eacfd6fa7c8070ab21f840b392fc9fbb55"
+_HF_REVISION = "8d3e64e5c69aa37209953cce3a48df1092bc7c94"
 _SPLIT_MAP = {"train": "train", "val": "validation", "test": "test"}
 
 
