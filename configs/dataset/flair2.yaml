@@ -1,0 +1,64 @@
+_target_: pangaea.datasets.flair2.FLAIR2
+dataset_name: FLAIR2
+root_path: ./data/flair2
+download_url: kshitijrajsharma/geobench2-vhr
+auto_download: True
+
+img_size: 512
+multi_temporal: False
+multi_modal: False
+
+ignore_index: -1
+num_classes: 13
+classes:
+  - building
+  - previous surface
+  - impervious surface
+  - bare soil
+  - water
+  - coniferous
+  - deciduous
+  - brushwood
+  - vineyard
+  - herbaceous vegetation
+  - agricultural land
+  - plowed land
+  - other
+distribution:
+  - 0.08289
+  - 0.07837
+  - 0.13095
+  - 0.02463
+  - 0.04819
+  - 0.02960
+  - 0.16509
+  - 0.07195
+  - 0.03586
+  - 0.17454
+  - 0.11472
+  - 0.03640
+  - 0.00682
+
+bands:
+  optical:
+    - B4
+    - B3
+    - B2
+
+data_mean:
+  optical:
+    - 111.3766
+    - 115.7735
+    - 106.8824
+
+data_std:
+  optical:
+    - 51.3225
+    - 45.1250
+    - 44.4067
+
+data_min:
+  optical: [0.0, 0.0, 0.0]
+
+data_max:
+  optical: [255.0, 255.0, 255.0]

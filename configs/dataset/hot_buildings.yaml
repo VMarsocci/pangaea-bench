@@ -1,0 +1,42 @@
+_target_: pangaea.datasets.hot_buildings.HOTBuildings
+dataset_name: HOTBuildings
+root_path: ./data/hot_buildings
+download_url: hotosm/vhr-building-segmentation
+auto_download: True
+
+img_size: 256
+multi_temporal: False
+multi_modal: False
+
+ignore_index: -1
+num_classes: 2
+classes:
+  - background
+  - building
+distribution:
+  - 0.5
+  - 0.5
+
+bands:
+  optical:
+    - B4
+    - B3
+    - B2
+
+data_mean:
+  optical:
+    - 0.4297
+    - 0.4002
+    - 0.3433
+
+data_std:
+  optical:
+    - 0.2056
+    - 0.1674
+    - 0.1599
+
+data_min:
+  optical: [0.0, 0.0, 0.0]
+
+data_max:
+  optical: [1.0, 1.0, 1.0]

@@ -20,6 +20,9 @@ This document provides a detailed overview of the datasets used in this reposito
 ### 🧪 Community-Contributed Datasets
 - [Potsdam](#potsdam)
 - [Open-Canopy](#open-canopy)
+- [FLAIR-2 (GEO-Bench-2)](#flair-2-geo-bench-2)
+- [SpaceNet 2 (GEO-Bench-2)](#spacenet-2-geo-bench-2)
+- [HOT Buildings](#hot-buildings)
 - [Geo-Bench Datasets](#geo-bench-datasets)
   - [Multi-label Classification (e.g., m-BigEarthNet)](#for-multi-label-classification-eg-m-bigearthnet)
   - [Single-label Classification (e.g., m-EuroSat, m-Brick-Kiln)](#for-single-label-classification-ie-m-eurosat-m-brick-kiln-m-forestnet-m-pv4ger-m-so2sat)
@@ -269,6 +272,61 @@ This document provides a detailed overview of the datasets used in this reposito
     criterion=mse \
     task=regression
   ```
+
+### FLAIR-2 (GEO-Bench-2)
+
+- Land cover semantic segmentation over 13 classes from IGN aerial imagery, packaged as the GEO-Bench-2 `geobench_flair2.tortilla` artifact.
+- Splits, hashes, and class indexing follow [GEO-Bench-2](https://arxiv.org/abs/2511.15658). Splits are stored inside the tortilla file (`tortilla:data_split` column) and are domain-stratified by FLAIR's `D###` domain IDs. Local counts: train 4049, val 1022, test 3022.
+- The basic experiment uses RGB only and resizes to encoder input size. To use the aerial NIR band as well, add `B8` to `bands.optical` (mapped to channel index 3 in the aerial TIFF).
+
+  ```
+   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=flair2 \
+   encoder=remoteclip \
+   decoder=seg_upernet \
+   preprocessing=seg_resize \
+   criterion=cross_entropy \
+   task=segmentation
+  ```
+
+### SpaceNet 2 (GEO-Bench-2)
+
+- Building footprint semantic segmentation (3 classes: background slot, no-building, building) over WorldView-3 imagery, packaged as the GEO-Bench-2 `geobench_spacenet2.tortilla` artifact.
+- Splits follow [GEO-Bench-2](https://arxiv.org/abs/2511.15658), city-based checkerboard split for spatial separation. Local counts: train 5186, val 1461, test 2961. Native tile size is 650x650.
+- Auto-downloads `spacenet2/geobench_spacenet2.tortilla` from `kshitijrajsharma/geobench2-vhr` (~43 GB, mirrors AI Alliance's `aialliance/spacenet2`).
+- The mask is shifted by +1 (matching the upstream `geobench_v2` convention) so labels become `{1=no-building, 2=building}` and the class-0 slot is reserved.
+- Default config uses RGB (`B4 B3 B2`) extracted from the 8-band Worldview multispectral bands; the panchromatic band is not loaded.
+
+  ```
+   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=spacenet2 \
+   encoder=remoteclip \
+   decoder=seg_upernet \
+   preprocessing=seg_resize \
+   criterion=cross_entropy \
+   task=segmentation
+  ```
+
+### HOT Buildings
+
+- Binary building segmentation (background, building) over RGB VHR aerial + satellite imagery, distributed by HOTOSM.
+- Source: [`hotosm/vhr-building-segmentation`](https://huggingface.co/datasets/hotosm/vhr-building-segmentation) on Hugging Face. Splits (`train`, `validation`, `test`) match the upstream parquet shard names. Local counts: train 57890, val 7237, test 7236, all 256x256.
+- Auto-downloads parquet shards and `norm_stats.json` via `huggingface_hub.snapshot_download`. Image and mask cells are PNG-encoded inside parquet; pixel values are scaled to 0..1 in the dataset and normalised in the preprocessor.
+- The class distribution is not authoritative (no per-class pixel counts shipped upstream), so the YAML uses a placeholder `[0.5, 0.5]` for `distribution`.
+
+  ```
+   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=hot_buildings \
+   encoder=remoteclip \
+   decoder=seg_upernet \
+   preprocessing=seg_resize \
+   criterion=cross_entropy \
+   task=segmentation
+  ```
+
 ### Geo-Bench Datasets 
 Note that `export GEO_BENCH_DIR=YOUR/PATH/DIR` is required.
 -  For multi-label linear classification, e.g., m-BigEarthNet
