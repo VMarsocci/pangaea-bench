@@ -99,12 +99,9 @@ This document provides a detailed overview of the datasets used in this reposito
   
 ### xView2
 
-- The dataset needs to be downloaded manually from the official website. This requires a registration and accepting the terms and conditions. On the download page, we need the datasets under `Datasets from the Challenge`, excluding the holdout set. Extract the datasets in the `./data/xView2/` folder, such that it contains e.g. `./data/xView2/tier3/images/...`.
-- The `tier3` set does not come up labels in the form of images, so we first need to create them from the respective JSON data. We create a `masks` folder on the level of the `images` folder by running:
-
-  ```
-   python datasets/xView2_create_masks.py
-   ```
+- Two download paths are supported, selected by the `download_url` field in `configs/dataset/xview2.yaml`:
+  - **HF auto-download (default)**: set `download_url` to the HF dataset repo ID (e.g. `kshitijrajsharma/pangaea2-vhr`, pinned to revision `49dfe4f…`). Parquet shards are fetched and written to disk in the legacy layout (`<root>/{train,test,tier3}/{images,masks}/<id>_{pre,post}_disaster.png`). The mirror stores raw bytes of each PNG, so the materialized files are bit-identical to the xview2.org tarball.
+  - **Legacy tar.gz**: set `download_url` to a URL with a scheme (e.g. `https://…`) and place the dataset manually under `./data/xView2/...`. Registration required at xview2.org. Run `python datasets/xView2_create_masks.py` to create the masks from the JSON labels.
 - The basic experimental setup for this dataset is a change detection task. Two images showing the same location are encoded using a foundation model as encoder. A smaller UPerNet model is trained to compute the 5-class segmentation mask from these encodings. Below is a CLI example for running the experiment with the Prithvi pretrained encoder:
    ```
    torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \

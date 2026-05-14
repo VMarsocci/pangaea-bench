@@ -1,8 +1,14 @@
 _target_: pangaea.datasets.xview2.xView2
 dataset_name: xView2
 root_path: ./data/xView2
-download_url: https://the-dataset-is-not-publicly-available.com
-auto_download: False
+# `download_url` accepts either a tar.gz URL (legacy xview2.org flow,
+# requires registration) or an HF dataset repo id like "<owner>/<repo>"
+# which auto-downloads parquet shards from the mirror and materialises
+# them into the legacy on-disk layout
+# (<root>/{train,test,tier3}/images/<id>_{pre,post}_disaster.png and
+# <root>/{train,test,tier3}/masks/<id>_post_disaster.png).
+download_url: kshitijrajsharma/pangaea2-vhr
+auto_download: True
 img_size: 1024
 multi_temporal: False
 multi_modal: False
