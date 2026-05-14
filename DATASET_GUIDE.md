@@ -24,6 +24,8 @@ This document provides a detailed overview of the datasets used in this reposito
   - [Multi-label Classification (e.g., m-BigEarthNet)](#for-multi-label-classification-eg-m-bigearthnet)
   - [Single-label Classification (e.g., m-EuroSat, m-Brick-Kiln)](#for-single-label-classification-ie-m-eurosat-m-brick-kiln-m-forestnet-m-pv4ger-m-so2sat)
   - [Semantic Segmentation (e.g., m-NZ-Cattle, m-SA-Crop-Type)](#for-semantic-segmentation-ie-m-cashew-plantation-m-chesapeake-landcover-m-neontree-m-nz-cattle-m-pv4ger-seg-and-m-sa-crop-type)
+  - [SpaceNet 3 (roads)](#spacenet-3-roads-native)
+  - [PureForest](#pureforest)
 
 ---
 
@@ -351,3 +353,41 @@ Note that `export GEO_BENCH_DIR=YOUR/PATH/DIR` is required.
     - The batch size can be larger since we're only doing inference
     - `finetune` is set to `false` as we're only using the pre-trained encoder
     - The task is set to `knn_probe_multi_label` to handle multiple labels per sample
+
+### SpaceNet 3 (roads)
+
+- Binary road segmentation over WorldView-3 PS-RGB (0.3 m).
+- Loads from the parquet mirror at [`kshitijrajsharma/pangaea2-vhr`](https://huggingface.co/datasets/kshitijrajsharma/pangaea2-vhr) (config `sn3_roads`), pinned to revision `49dfe4f…`. Auto-downloads only the labeled `train` shards (~12 GB).
+- Upstream `test` is unlabeled (standard SpaceNet challenge format), so we carve **train / val / test (70 / 20 / 10) from upstream `train`, stratified per-AOI** (Vegas / Paris / Shanghai / Khartoum), `random_state=234`. This mirrors the GEO-Bench-2 SN2 implementation style ([Lacoste et al. 2025, §6.1.11](https://arxiv.org/abs/2511.15658)).
+- Images decode as uint16 GeoTIFF via `rasterio.open(io.BytesIO(...))` (PIL would silently truncate uint16 RGB).
+- Image size 1300x1300; encoder-time resize handled by preprocessing.
+
+  ```
+   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=spacenet3 \
+   encoder=remoteclip \
+   decoder=seg_upernet \
+   preprocessing=seg_default \
+   criterion=cross_entropy \
+   task=segmentation
+  ```
+
+### PureForest
+
+- Tree-species classification, **13 classes** (single-label) over 0.2 m IGN BD ORTHO aerial NRGB (NIR + R + G + B). Labels follow the official [PureForest dictionary](https://huggingface.co/datasets/IGNF/PureForest/blob/main/metadata/PureForestID-dictionnary.csv), which hierarchically groups 18 tree species into 13 semantic classes.
+- Loads from the parquet mirror at [`kshitijrajsharma/pangaea2-vhr`](https://huggingface.co/datasets/kshitijrajsharma/pangaea2-vhr) (config `pureforest`), pinned to revision `89dcb32…`. Splits (`train` / `val` / `test`) are defined by the upstream shard names.
+- The mirror ships PNGs in channel order `(NIR, R, G, B)`; band selection is driven by `bands.optical` in the YAML (default RGB = `B4 B3 B2`, mapped to channel indices `[1, 2, 3]`).
+- The parquet `label` column is the official 13-class `class_index` (0..12); the underlying 18-species name remains available as `class_name` and `species` columns for traceability.
+
+  ```
+   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=pureforest \
+   encoder=remoteclip \
+   decoder=cls_linear \
+   preprocessing=cls_resize \
+   criterion=cross_entropy \
+   task=linear_classification \
+   finetune=false
+  ```
