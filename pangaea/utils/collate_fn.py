@@ -4,6 +4,28 @@ import torch
 import torch.nn.functional as F
 
 
+def get_det_collate_fn(modalities: list[str]) -> Callable:
+    """Collate fn for object detection.
+
+    Stacks images per modality, keeps `boxes` and `labels` as lists of
+    variable-length tensors (one entry per sample) because torchvision
+    FasterRCNN consumes per-image targets.
+    """
+
+    def collate_fn(batch):
+        return {
+            "image": {
+                modality: torch.stack([x["image"][modality] for x in batch])
+                for modality in modalities
+            },
+            "boxes": [x["boxes"] for x in batch],
+            "labels": [x["labels"] for x in batch],
+            "metadata": [x["metadata"] for x in batch],
+        }
+
+    return collate_fn
+
+
 def get_collate_fn(modalities: list[str]) -> Callable:
     def collate_fn(
         batch: dict[str, dict[str, torch.Tensor] | torch.Tensor],

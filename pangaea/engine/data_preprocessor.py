@@ -8,6 +8,8 @@ import torch
 import torchvision.transforms as T
 import torchvision.transforms.functional as TF
 from hydra.utils import instantiate
+from torchvision import tv_tensors
+from torchvision.transforms import v2
 
 
 class BasePreprocessor:
@@ -940,6 +942,144 @@ class RandomResizedCropToEncoder(RandomResizedCrop):
         super().__init__(
             size, scale, ratio, interpolation, antialias, resize_target, **meta
         )
+
+
+class DetPreprocessor(BasePreprocessor):
+    """Chained preprocessor for samples shaped `{image, boxes (N,4) xyxy, labels (N,), metadata}`."""
+
+    def __init__(self, preprocessor_cfg, dataset_cfg, encoder_cfg) -> None:
+        super().__init__()
+        meta = {
+            "dataset_img_size": dataset_cfg["img_size"],
+            "encoder_input_size": encoder_cfg["input_size"],
+            "dataset_bands": dataset_cfg["bands"],
+            "encoder_bands": encoder_cfg["input_bands"],
+            "multi_modal": dataset_cfg["multi_modal"],
+            "multi_temporal": dataset_cfg["multi_temporal"],
+            "data_bands": dataset_cfg["bands"],
+            "data_img_size": dataset_cfg["img_size"],
+            "data_mean": {
+                k: torch.tensor(v) for k, v in dataset_cfg["data_mean"].items()
+            },
+            "data_std": {
+                k: torch.tensor(v) for k, v in dataset_cfg["data_std"].items()
+            },
+            "data_min": {
+                k: torch.tensor(v) for k, v in dataset_cfg["data_min"].items()
+            },
+            "data_max": {
+                k: torch.tensor(v) for k, v in dataset_cfg["data_max"].items()
+            },
+            "ignore_index": dataset_cfg["ignore_index"],
+            "class_distribution": torch.tensor(dataset_cfg["distribution"]),
+        }
+
+        self.preprocessor = []
+        for preprocess in preprocessor_cfg:
+            preprocessor = instantiate(preprocess, **meta)
+            meta = preprocessor.update_meta(meta)
+            self.preprocessor.append(preprocessor)
+
+    def check_dimension(self, data):
+        for k, v in data["image"].items():
+            if v.dim() != 4:
+                raise AssertionError(
+                    f"Image dimension must be 4 (C, T, H, W), got {v.dim()}"
+                )
+        if data["boxes"].dim() != 2 or data["boxes"].shape[-1] != 4:
+            raise AssertionError(
+                f"boxes must have shape (N, 4), got {tuple(data['boxes'].shape)}"
+            )
+        if data["labels"].dim() != 1:
+            raise AssertionError(
+                f"labels must have shape (N,), got {tuple(data['labels'].shape)}"
+            )
+        if data["labels"].shape[0] != data["boxes"].shape[0]:
+            raise AssertionError(
+                f"boxes and labels must align: got {data['boxes'].shape[0]} vs {data['labels'].shape[0]}"
+            )
+
+    def __call__(self, data):
+        self.check_dimension(data)
+        for process in self.preprocessor:
+            data = process(data)
+        return data
+
+
+class DetSpatialAugment(BasePreprocessor):
+    """Bbox-aware random crop + flips via torchvision.transforms.v2."""
+
+    def __init__(
+        self,
+        hflip_prob: float = 0.5,
+        vflip_prob: float = 0.5,
+        crop: bool = True,
+        **meta,
+    ) -> None:
+        super().__init__()
+        self.size = int(meta["encoder_input_size"])
+        ops: list = []
+        if crop:
+            ops.append(v2.RandomCrop(self.size, pad_if_needed=True))
+        if hflip_prob > 0:
+            ops.append(v2.RandomHorizontalFlip(p=hflip_prob))
+        if vflip_prob > 0:
+            ops.append(v2.RandomVerticalFlip(p=vflip_prob))
+        ops.append(v2.SanitizeBoundingBoxes())
+        self.transform = v2.Compose(ops)
+
+    def __call__(self, data):
+        modality = next(iter(data["image"].keys()))
+        img = data["image"][modality]
+        _, t, h, w = img.shape
+        if t != 1:
+            raise AssertionError("Detection preprocessor expects single-temporal samples")
+
+        sample = {
+            "image": tv_tensors.Image(img.squeeze(1)),
+            "boxes": tv_tensors.BoundingBoxes(
+                data["boxes"], format="XYXY", canvas_size=(h, w)
+            ),
+            "labels": data["labels"],
+        }
+        out = self.transform(sample)
+        data["image"][modality] = out["image"].unsqueeze(1)
+        data["boxes"] = torch.as_tensor(out["boxes"], dtype=torch.float32)
+        data["labels"] = out["labels"]
+        return data
+
+    def update_meta(self, meta):
+        meta["data_img_size"] = self.size
+        return meta
+
+
+class DetResize(BasePreprocessor):
+    """Bbox-aware resize to encoder input size via torchvision.transforms.v2."""
+
+    def __init__(self, **meta) -> None:
+        super().__init__()
+        self.size = int(meta["encoder_input_size"])
+        self.transform = v2.Resize([self.size, self.size], antialias=True)
+
+    def __call__(self, data):
+        modality = next(iter(data["image"].keys()))
+        img = data["image"][modality]
+        _, _, h, w = img.shape
+
+        sample = {
+            "image": tv_tensors.Image(img.squeeze(1)),
+            "boxes": tv_tensors.BoundingBoxes(
+                data["boxes"], format="XYXY", canvas_size=(h, w)
+            ),
+        }
+        out = self.transform(sample)
+        data["image"][modality] = out["image"].unsqueeze(1)
+        data["boxes"] = torch.as_tensor(out["boxes"], dtype=torch.float32)
+        return data
+
+    def update_meta(self, meta):
+        meta["data_img_size"] = self.size
+        return meta
 
 
 def _setup_size(size, error_msg):

@@ -20,7 +20,7 @@ from pangaea.decoders.base import Decoder
 from pangaea.encoders.base import Encoder
 from pangaea.engine.evaluator import Evaluator
 from pangaea.engine.trainer import Trainer
-from pangaea.utils.collate_fn import get_collate_fn
+from pangaea.utils.collate_fn import get_collate_fn, get_det_collate_fn
 from pangaea.utils.logger import init_logger
 from pangaea.utils.subset_sampler import get_subset_indices
 from pangaea.utils.utils import (
@@ -200,7 +200,11 @@ def main(cfg: DictConfig) -> None:
     )
 
     modalities = list(encoder.input_bands.keys())
-    collate_fn = get_collate_fn(modalities)
+    collate_kind = OmegaConf.select(cfg, "task.collate_fn") or "default"
+    if collate_kind == "detection":
+        collate_fn = get_det_collate_fn(modalities)
+    else:
+        collate_fn = get_collate_fn(modalities)
 
     # training
     if train_run or cfg.task.trainer.model == "knn_probe":
