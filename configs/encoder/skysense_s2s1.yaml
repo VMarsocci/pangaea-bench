@@ -1,5 +1,6 @@
 _target_: pangaea.encoders.skysense_encoder.SkySenseS2S1
 
+# https://www.notion.so/SkySense-Checkpoints-a7fcff6ce29a4647a08c7fe416910509
 encoder_weights: ./pretrained_models/skysense_backbone_s2.pth
 download_url: ~
 
