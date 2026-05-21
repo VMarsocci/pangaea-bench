@@ -1,0 +1,32 @@
+_target_: pangaea.encoders.skysense_encoder.SkySenseS2S1
+
+encoder_weights: ./pretrained_models/skysense_backbone_s2.pth
+download_url: ~
+
+s1_encoder_weights: ./pretrained_models/skysense_backbone_s1.pth
+
+input_size: 64
+
+input_bands:
+  optical:
+    - B2
+    - B3
+    - B4
+    - B5
+    - B6
+    - B7
+    - B8
+    - B8A
+    - B11
+    - B12
+  sar:
+    - VV
+    - VH
+
+output_layers:
+  - 5
+  - 11
+  - 17
+  - 23
+
+output_dim: 2048
