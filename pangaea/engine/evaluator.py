@@ -187,7 +187,7 @@ class Evaluator:
                     :,
                     h_grid[i] : h_grid[i] + input_size,
                     w_grid[j] : w_grid[j] + input_size,
-                ] += pred[:, h * i + j]
+                ] += pred[:, w * i + j]
                 pred_count[
                     :,
                     h_grid[i] : h_grid[i] + input_size,
