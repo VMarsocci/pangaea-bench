@@ -89,7 +89,11 @@ class EverWatch(RawGeoFMDataset):
             data = src.read(out_dtype="float32")
         image = torch.from_numpy(data[self._band_indices, :, :]).unsqueeze(1)
 
-        annot_bytes = annot_ref if isinstance(annot_ref, (bytes, bytearray)) else read_tortilla_subfile_bytes(annot_ref)
+        annot_bytes = (
+            annot_ref
+            if isinstance(annot_ref, (bytes, bytearray))
+            else read_tortilla_subfile_bytes(annot_ref)
+        )
         annot_table = pq.read_table(io.BytesIO(annot_bytes))
         xmin = annot_table.column("xmin").to_pylist()
         ymin = annot_table.column("ymin").to_pylist()
@@ -98,13 +102,13 @@ class EverWatch(RawGeoFMDataset):
         label_strs = annot_table.column("label").to_pylist()
 
         if xmin:
-            boxes = torch.tensor(
-                list(zip(xmin, ymin, xmax, ymax)), dtype=torch.float32
-            )
+            boxes = torch.tensor(list(zip(xmin, ymin, xmax, ymax)), dtype=torch.float32)
             # None labels mean "white bird, species unknown" per the upstream EverWatch convention.
             labels = torch.tensor(
                 [
-                    _EVERWATCH_LABEL_TO_INDEX[lab if lab is not None else "Unknown White"]
+                    _EVERWATCH_LABEL_TO_INDEX[
+                        lab if lab is not None else "Unknown White"
+                    ]
                     for lab in label_strs
                 ],
                 dtype=torch.int64,

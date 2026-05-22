@@ -944,41 +944,8 @@ class RandomResizedCropToEncoder(RandomResizedCrop):
         )
 
 
-class DetPreprocessor(BasePreprocessor):
+class DetPreprocessor(Preprocessor):
     """Chained preprocessor for samples shaped `{image, boxes (N,4) xyxy, labels (N,), metadata}`."""
-
-    def __init__(self, preprocessor_cfg, dataset_cfg, encoder_cfg) -> None:
-        super().__init__()
-        meta = {
-            "dataset_img_size": dataset_cfg["img_size"],
-            "encoder_input_size": encoder_cfg["input_size"],
-            "dataset_bands": dataset_cfg["bands"],
-            "encoder_bands": encoder_cfg["input_bands"],
-            "multi_modal": dataset_cfg["multi_modal"],
-            "multi_temporal": dataset_cfg["multi_temporal"],
-            "data_bands": dataset_cfg["bands"],
-            "data_img_size": dataset_cfg["img_size"],
-            "data_mean": {
-                k: torch.tensor(v) for k, v in dataset_cfg["data_mean"].items()
-            },
-            "data_std": {
-                k: torch.tensor(v) for k, v in dataset_cfg["data_std"].items()
-            },
-            "data_min": {
-                k: torch.tensor(v) for k, v in dataset_cfg["data_min"].items()
-            },
-            "data_max": {
-                k: torch.tensor(v) for k, v in dataset_cfg["data_max"].items()
-            },
-            "ignore_index": dataset_cfg["ignore_index"],
-            "class_distribution": torch.tensor(dataset_cfg["distribution"]),
-        }
-
-        self.preprocessor = []
-        for preprocess in preprocessor_cfg:
-            preprocessor = instantiate(preprocess, **meta)
-            meta = preprocessor.update_meta(meta)
-            self.preprocessor.append(preprocessor)
 
     def check_dimension(self, data):
         for k, v in data["image"].items():
@@ -998,12 +965,6 @@ class DetPreprocessor(BasePreprocessor):
             raise AssertionError(
                 f"boxes and labels must align: got {data['boxes'].shape[0]} vs {data['labels'].shape[0]}"
             )
-
-    def __call__(self, data):
-        self.check_dimension(data)
-        for process in self.preprocessor:
-            data = process(data)
-        return data
 
 
 class DetSpatialAugment(BasePreprocessor):
@@ -1029,11 +990,17 @@ class DetSpatialAugment(BasePreprocessor):
         self.transform = v2.Compose(ops)
 
     def __call__(self, data):
+        if len(data["image"]) != 1:
+            raise AssertionError(
+                f"Detection preprocessor expects a single modality; got {list(data['image'].keys())}"
+            )
         modality = next(iter(data["image"].keys()))
         img = data["image"][modality]
         _, t, h, w = img.shape
         if t != 1:
-            raise AssertionError("Detection preprocessor expects single-temporal samples")
+            raise AssertionError(
+                "Detection preprocessor expects single-temporal samples"
+            )
 
         sample = {
             "image": tv_tensors.Image(img.squeeze(1)),
@@ -1062,6 +1029,10 @@ class DetResize(BasePreprocessor):
         self.transform = v2.Resize([self.size, self.size], antialias=True)
 
     def __call__(self, data):
+        if len(data["image"]) != 1:
+            raise AssertionError(
+                f"Detection preprocessor expects a single modality; got {list(data['image'].keys())}"
+            )
         modality = next(iter(data["image"].keys()))
         img = data["image"][modality]
         _, _, h, w = img.shape
@@ -1093,4 +1064,3 @@ def _setup_size(size, error_msg):
         raise ValueError(error_msg)
 
     return size
-

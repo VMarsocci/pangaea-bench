@@ -79,14 +79,23 @@ class NZCattleDet(RawGeoFMDataset):
             data = src.read(out_dtype="float32")
         image = torch.from_numpy(data[self._band_indices, :, :]).unsqueeze(1)
 
-        annot_bytes = annot_ref if isinstance(annot_ref, (bytes, bytearray)) else read_tortilla_subfile_bytes(annot_ref)
+        annot_bytes = (
+            annot_ref
+            if isinstance(annot_ref, (bytes, bytearray))
+            else read_tortilla_subfile_bytes(annot_ref)
+        )
         with h5py.File(io.BytesIO(annot_bytes), "r") as f:
             annotations = json.loads(f.attrs["annotation"])["boxes"]
 
         if annotations:
             boxes = torch.tensor(
                 [
-                    [b["bbox"][0], b["bbox"][1], b["bbox"][0] + b["bbox"][2], b["bbox"][1] + b["bbox"][3]]
+                    [
+                        b["bbox"][0],
+                        b["bbox"][1],
+                        b["bbox"][0] + b["bbox"][2],
+                        b["bbox"][1] + b["bbox"][3],
+                    ]
                     for b in annotations
                 ],
                 dtype=torch.float32,

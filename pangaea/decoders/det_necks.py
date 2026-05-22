@@ -2,7 +2,6 @@ from collections import OrderedDict
 
 import torch
 import torch.nn as nn
-from torchvision.models.detection.transform import GeneralizedRCNNTransform
 from torchvision.ops import FeaturePyramidNetwork
 from torchvision.ops.feature_pyramid_network import LastLevelMaxPool
 
@@ -67,37 +66,3 @@ class BackboneWrapper(nn.Module):
         feats = self.encoder({self.modality: image})
         feats = self.feature_pyramid(feats)
         return self.fpn(list(feats))
-
-
-class IdentityRCNNTransform(GeneralizedRCNNTransform):
-    """GeneralizedRCNNTransform with normalize/resize/postprocess overridden to identity.
-
-    Pangaea's preprocessor already normalizes and sizes inputs to the encoder, so the
-    parent's ImageNet-style normalize and min/max resize would corrupt them. We keep the
-    parent only for batching list[Tensor] into an ImageList. Adapted from terratorch's
-    TerratorchGeneralizedRCNNTransform (terratorch.models.utils:346-398).
-    """
-
-    def __init__(self) -> None:
-        # size_divisible=1 is load-bearing: the default 32 pads batches up to a multiple of
-        # 32, which breaks encoders with fixed-size positional embeddings (e.g., CROMA at 120).
-        super().__init__(
-            min_size=1,
-            max_size=10_000,
-            image_mean=[0.0],
-            image_std=[1.0],
-            size_divisible=1,
-        )
-
-    def normalize(self, image: torch.Tensor) -> torch.Tensor:
-        return image
-
-    def resize(
-        self,
-        image: torch.Tensor,
-        target: dict[str, torch.Tensor] | None = None,
-    ) -> tuple[torch.Tensor, dict[str, torch.Tensor] | None]:
-        return image, target
-
-    def postprocess(self, result, image_shapes, original_image_sizes):
-        return result
