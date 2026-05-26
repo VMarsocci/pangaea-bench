@@ -1,0 +1,14 @@
+_target_: pangaea.encoders.timm_encoder.TimmEncoder
+model_name: vit_base_patch16_dinov3.lvd1689m
+encoder_type: vit
+input_size: 224
+input_bands:
+  optical:
+    - B4
+    - B3
+    - B2
+output_layers:
+  - 2
+  - 5
+  - 8
+  - 11
