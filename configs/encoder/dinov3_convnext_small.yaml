@@ -1,0 +1,14 @@
+_target_: pangaea.encoders.timm_encoder.TimmEncoder
+model_name: convnext_small.dinov3_lvd1689m
+encoder_type: cnn
+input_size: 224
+input_bands:
+  optical:
+    - B4
+    - B3
+    - B2
+output_layers:
+  - 0
+  - 1
+  - 2
+  - 3
