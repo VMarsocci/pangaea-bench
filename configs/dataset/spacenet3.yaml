@@ -1,0 +1,42 @@
+_target_: pangaea.datasets.spacenet3.SpaceNet3
+dataset_name: SpaceNet3
+root_path: ./data/spacenet3
+download_url: kshitijrajsharma/pangaea2-vhr
+auto_download: True
+
+img_size: 1300
+multi_temporal: False
+multi_modal: False
+
+ignore_index: -1
+num_classes: 2
+classes:
+  - background
+  - road
+distribution:
+  - 0.95
+  - 0.05
+
+bands:
+  optical:
+    - B4
+    - B3
+    - B2
+
+data_mean:
+  optical:
+    - 314.7255
+    - 440.1271
+    - 339.0440
+
+data_std:
+  optical:
+    - 202.4017
+    - 239.8723
+    - 163.6649
+
+data_min:
+  optical: [0.0, 0.0, 0.0]
+
+data_max:
+  optical: [1888.0, 1977.0, 1590.0]
