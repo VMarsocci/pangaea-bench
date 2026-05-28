@@ -1,0 +1,44 @@
+_target_: pangaea.datasets.spacenet2.SpaceNet2
+dataset_name: SpaceNet2
+root_path: ./data/spacenet2
+download_url: kshitijrajsharma/geobench2-vhr
+auto_download: True
+
+img_size: 650
+multi_temporal: False
+multi_modal: False
+
+ignore_index: -1
+num_classes: 3
+classes:
+  - background
+  - no-building
+  - building
+distribution:
+  - 0.0
+  - 0.84048
+  - 0.15952
+
+bands:
+  optical:
+    - B4
+    - B3
+    - B2
+
+data_mean:
+  optical:
+    - 334.4739
+    - 465.2506
+    - 357.9647
+
+data_std:
+  optical:
+    - 196.8647
+    - 227.8530
+    - 150.6043
+
+data_min:
+  optical: [0.0, 0.0, 0.0]
+
+data_max:
+  optical: [1929.4541, 2034.9453, 1566.4764]
