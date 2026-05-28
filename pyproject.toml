@@ -26,12 +26,14 @@ classifiers = [
 ]
 dependencies = [
     "albumentations>=2.0.8",
-    "einops>=0.8.2",
+    "claymodel",
+    "einops>=0.7.0,<0.8",
     "gdown>=6.0.0",
     "geopandas>=1.1.3",
     "google-cloud-storage>=3.10.1",
     "h5py>=3.16.0",
     "hydra-core>=1.3.2",
+    "lightning>=2.0.0",                  # transsitve dep from clay
     "matplotlib>=3.10.9",
     "omegaconf>=2.3.0",
     "opencv-python-headless>=4.13.0.92",
@@ -63,6 +65,10 @@ Issues = "https://github.com/Evameijling/pangaea-bench2.0/issues"
 module-name = "pangaea"
 module-root = ""
 source-include = ["configs/**", "tests/**"]
+
+[tool.uv.sources]
+claymodel = { git = "https://github.com/Clay-foundation/model.git", rev = "f14e698f3c237cabf8d28dec669a362d66625381" }
+
 
 [tool.ruff.lint]
 # flake8 config: only enforce real-bug rules

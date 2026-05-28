@@ -1,0 +1,20 @@
+_target_: pangaea.encoders.clay_encoder.ClayEncoder
+input_size: 224
+input_bands:
+  optical:
+    - B4
+    - B3
+    - B2
+
+wavelengths:
+  - 0.665
+  - 0.560
+  - 0.493
+
+gsd: 0.5
+patch_size: 8
+output_layers:
+  - 5
+  - 11
+  - 17
+  - 23
