@@ -1,0 +1,64 @@
+_target_: pangaea.datasets.pureforest.PureForest
+dataset_name: PureForest
+root_path: ./data/pureforest
+download_url: kshitijrajsharma/pangaea2-vhr
+auto_download: True
+
+img_size: 250
+multi_temporal: False
+multi_modal: False
+
+ignore_index: -1
+num_classes: 13
+classes:
+  - Deciduous oak
+  - Evergreen oak
+  - Beech
+  - Chestnut
+  - Black locust
+  - Maritime pine
+  - Scotch pine
+  - Black pine
+  - Aleppo pine
+  - Fir
+  - Spruce
+  - Larch
+  - Douglas
+distribution:
+  - 0.2292
+  - 0.1680
+  - 0.1014
+  - 0.0483
+  - 0.0241
+  - 0.0661
+  - 0.1639
+  - 0.0630
+  - 0.0583
+  - 0.0014
+  - 0.0373
+  - 0.0367
+  - 0.0023
+
+bands:
+  optical:
+    - B4
+    - B3
+    - B2
+
+data_mean:
+  optical:
+    - 67.8204
+    - 79.2200
+    - 71.4104
+
+data_std:
+  optical:
+    - 28.6671
+    - 28.4601
+    - 25.0810
+
+data_min:
+  optical: [0.0, 0.0, 0.0]
+
+data_max:
+  optical: [255.0, 255.0, 255.0]
