@@ -4,12 +4,14 @@
 # - https://github.com/PaulBorneP/Xview2_Strong_Baseline/blob/master/legacy/datasets.py
 
 from typing import Sequence, Dict, Any, Union, Literal, Tuple
+import shutil
 import time
 import numpy as np
 import torch
 from torch.utils.data import Dataset
 import os
 import pathlib
+from glob import glob
 from sklearn.model_selection import train_test_split
 import cv2
 import urllib
@@ -17,6 +19,9 @@ import tarfile
 
 from pangaea.datasets.utils import DownloadProgressBar
 from pangaea.datasets.base import RawGeoFMDataset
+
+_HF_REVISION = "49dfe4fa206d43720695350a597d067e6892844a"
+_HF_SPLITS = ("train", "test", "tier3")
 
 
 class xView2(RawGeoFMDataset):
@@ -217,11 +222,16 @@ class xView2(RawGeoFMDataset):
         output_path = pathlib.Path(self.root_path)
         url = self.download_url
 
-        try:
-            os.makedirs(output_path, exist_ok=False)
-        except FileExistsError:
+        if output_path.exists() and (output_path / "train" / "images").exists():
             if not silent:
                 print("xView2 dataset folder exists, skipping downloading dataset.")
+            return
+
+        output_path.mkdir(parents=True, exist_ok=True)
+
+        # HF dataset repo IDs match "<owner>/<repo>" with no URL scheme.
+        if "://" not in url and url.count("/") == 1:
+            xView2._materialize_from_hf_mirror(self, output_path, url, silent=silent)
             return
 
         temp_file_name = f"temp_{hex(int(time.time()))}_hls_burn_scars.tar.gz"
@@ -244,6 +254,58 @@ class xView2(RawGeoFMDataset):
             print("done.")
 
         os.remove(output_path / temp_file_name)
+
+    @staticmethod
+    def _materialize_from_hf_mirror(self, output_path, repo_id, silent=False):
+        """Stream PNG bytes from the parquet mirror onto disk in the
+        on-disk layout `xview2.py` already expects. The mirror stores raw
+        `read_bytes()` of each PNG, so this is bit-identical to the
+        xview2.org tarball.
+        """
+        from huggingface_hub import snapshot_download
+        import pyarrow.parquet as pq
+
+        if not silent:
+            print(f"Downloading xView2 parquet shards from HF mirror {repo_id} ...")
+
+        staging = output_path / "_hf_parquet"
+        staging.mkdir(parents=True, exist_ok=True)
+        snapshot_download(
+            repo_id=repo_id,
+            repo_type="dataset",
+            revision=_HF_REVISION,
+            local_dir=str(staging),
+            allow_patterns=["xview2/*.parquet"],
+        )
+
+        for split in _HF_SPLITS:
+            shards = sorted(glob(str(staging / "xview2" / f"{split}-*.parquet")))
+            if not shards:
+                if not silent:
+                    print(f"  no {split} shards found, skipping")
+                continue
+            images_dir = output_path / split / "images"
+            masks_dir = output_path / split / "masks"
+            images_dir.mkdir(parents=True, exist_ok=True)
+            masks_dir.mkdir(parents=True, exist_ok=True)
+            n_written = 0
+            for shard in shards:
+                table = pq.read_table(
+                    shard, columns=["image_id", "pre_image", "post_image", "post_mask"]
+                )
+                for i in range(len(table)):
+                    iid = table["image_id"][i].as_py()
+                    pre = table["pre_image"][i].as_py()["bytes"]
+                    post = table["post_image"][i].as_py()["bytes"]
+                    mask = table["post_mask"][i].as_py()["bytes"]
+                    (images_dir / f"{iid}_pre_disaster.png").write_bytes(pre)
+                    (images_dir / f"{iid}_post_disaster.png").write_bytes(post)
+                    (masks_dir / f"{iid}_post_disaster.png").write_bytes(mask)
+                    n_written += 1
+            if not silent:
+                print(f"  wrote {n_written} sample(s) to {output_path}/{split}/")
+
+        shutil.rmtree(staging, ignore_errors=True)
 
 if __name__=="__main__":
     dataset = xView2(
