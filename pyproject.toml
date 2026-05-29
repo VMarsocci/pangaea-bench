@@ -25,6 +25,7 @@ classifiers = [
     "Topic :: Scientific/Engineering :: GIS",
 ]
 dependencies = [
+    "albumentations>=2.0.8",
     "einops>=0.8.2",
     "gdown>=6.0.0",
     "geopandas>=1.1.3",
