@@ -1,7 +1,7 @@
 _target_: pangaea.datasets.geobench.mpv4ger.mPv4ger
 dataset_name: mPv4ger
-root_path: ${oc.env:GEO_BENCH_DIR}/classification_v1.0/m-pv4ger
-download_url: "recursix/geo-bench-1.0"
+root_path: ./data/geo_bench/classification_v1.0/m-pv4ger
+download_url: https://huggingface.co/datasets/recursix/geo-bench-1.0/resolve/1e5754337032f097396db62cc15a5ff88f4618e8/classification_v1.0/m-pv4ger.zip
 auto_download: True
 
 num_classes: 2

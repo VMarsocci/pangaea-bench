@@ -30,3 +30,4 @@ data/mados/splits/*
 
 .vscode
 .idea
+*.log

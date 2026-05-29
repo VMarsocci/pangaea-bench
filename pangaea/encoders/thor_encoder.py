@@ -1318,10 +1318,9 @@ class THOR_Encoder(Encoder):
             param.requires_grad = False
 
     def load_encoder_weights(self, logger: Logger) -> None:
-        pretrained_model = torch.load(
-            self.encoder_weights, map_location="cpu", weights_only=True
-        )["state_dict"]
-        prefix = "mae."
+        raw = torch.load(self.encoder_weights, map_location="cpu", weights_only=True)
+        pretrained_model = raw["state_dict"] if "state_dict" in raw else raw
+        prefix = "mae." if any(k.startswith("mae.") for k in pretrained_model) else "encoder."
         k = pretrained_model.keys()
         renamed_keys = {
             key.replace(prefix, ""): key for key in k if key.startswith(prefix)

@@ -272,7 +272,8 @@ class BandPadding(BasePreprocessor):
             meta["data_max"][k] = torch.full(
                 size, fill_value=self.fill_value, dtype=torch.float
             )
-            if self.used_bands_indices[k] is not None:
+            # encoder-only modalities (e.g. SAR when the dataset is optical-only) stay zero-filled.
+            if k in self.used_bands_indices and self.used_bands_indices[k] is not None:
                 meta["data_mean"][k][self.avail_bands_mask[k]] = meta["data_mean"][k][
                     self.used_bands_indices[k]
                 ]
