@@ -1,3 +1,4 @@
+import os
 from logging import Logger
 from typing import Any, cast
 
@@ -18,6 +19,8 @@ class TimmEncoder(Encoder):
         input_size: int,
         output_layers: list[int],
         encoder_type: str,
+        encoder_weights: str = "",
+        download_url: str = "",
     ):
         if encoder_type not in {"cnn", "vit"}:
             raise ValueError(
@@ -65,8 +68,8 @@ class TimmEncoder(Encoder):
             multi_temporal=False,
             multi_temporal_output=False,
             pyramid_output=pyramid_output,
-            encoder_weights="",
-            download_url="",
+            encoder_weights=encoder_weights,
+            download_url=download_url,
         )
 
         self.encoder_type = encoder_type
@@ -88,8 +91,16 @@ class TimmEncoder(Encoder):
     def load_encoder_weights(self, logger: Logger) -> None:
         # timm fuses architecture build + checkpoint resolution inside create_model;
         # we instantiate a temporary pretrained twin and copy its state_dict over.
+        overlay = (
+            {"file": str(self.encoder_weights)}
+            if self.encoder_weights and os.path.isfile(self.encoder_weights)
+            else None
+        )
         ref = timm.create_model(
-            self.model_name, pretrained=True, **cast(Any, self._create_kwargs)
+            self.model_name,
+            pretrained=True,
+            pretrained_cfg_overlay=overlay,
+            **cast(Any, self._create_kwargs),
         )
         self.backbone.load_state_dict(ref.state_dict())
         del ref
