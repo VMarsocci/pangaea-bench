@@ -1,4 +1,6 @@
 _target_: pangaea.encoders.clay_encoder.ClayEncoder
+encoder_weights: ./pretrained_models/clay-v1.5.ckpt
+download_url: https://huggingface.co/made-with-clay/Clay/resolve/70200ebcccdf67bf2a0cb9984c77ddee26c10ed2/v1.5/clay-v1.5.ckpt
 input_size: 224
 input_bands:
   optical:

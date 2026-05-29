@@ -3,13 +3,10 @@ from typing import cast
 
 import torch
 from claymodel.model import Encoder as ClayCoreEncoder
-from huggingface_hub import hf_hub_download
 from torch import nn
 
 from pangaea.encoders.base import Encoder
 
-CLAY_V1_5_REPO = "made-with-clay/Clay"
-CLAY_V1_5_FILE = "v1.5/clay-v1.5.ckpt"
 CLAY_V1_5_STATE_DICT_PREFIX = "model.encoder."
 
 CLAY_V1_5_ARCH: dict[str, int] = {
@@ -32,6 +29,8 @@ class ClayEncoder(Encoder):
         gsd: float,
         wavelengths: list[float],
         patch_size: int = 8,
+        encoder_weights: str = "",
+        download_url: str = "",
     ):
         n_bands = sum(len(b) for b in input_bands.values())
         if len(wavelengths) != n_bands:
@@ -51,8 +50,8 @@ class ClayEncoder(Encoder):
             multi_temporal=False,
             multi_temporal_output=False,
             pyramid_output=False,
-            encoder_weights="",
-            download_url="",
+            encoder_weights=encoder_weights,
+            download_url=download_url,
         )
 
         self.patch_size = patch_size
@@ -71,8 +70,7 @@ class ClayEncoder(Encoder):
         )
 
     def load_encoder_weights(self, logger: Logger) -> None:
-        ckpt_path = hf_hub_download(CLAY_V1_5_REPO, CLAY_V1_5_FILE)
-        ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
+        ckpt = torch.load(self.encoder_weights, map_location="cpu", weights_only=False)
         full_sd = ckpt.get("state_dict", ckpt)
         encoder_sd = {
             k[len(CLAY_V1_5_STATE_DICT_PREFIX) :]: v
