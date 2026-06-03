@@ -1,7 +1,7 @@
 _target_: pangaea.encoders.timm_encoder.TimmEncoder
 model_name: convnext_xlarge.fb_in22k_ft_in1k
 encoder_type: cnn
-input_size: 224
+input_size: 256
 input_bands:
   optical:
     - B4
