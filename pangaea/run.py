@@ -221,6 +221,8 @@ def main(cfg: DictConfig) -> None:
         # get datasets
         raw_train_dataset: RawGeoFMDataset = instantiate(cfg.dataset, split="train")
         raw_val_dataset: RawGeoFMDataset = instantiate(cfg.dataset, split="val")
+        n_train_full = len(raw_train_dataset)
+        n_val_full = len(raw_val_dataset)
 
         if 0 < cfg.limited_label_train < 1:
             indices = get_subset_indices(
@@ -256,6 +258,12 @@ def main(cfg: DictConfig) -> None:
         logger.info(
             f"Total number of train patches: {len(train_dataset)}\n"
             f"Total number of validation patches: {len(val_dataset)}\n"
+        )
+        logger.info(
+            f"[samples] split=train used={len(raw_train_dataset)} full={n_train_full}"
+        )
+        logger.info(
+            f"[samples] split=val used={len(raw_val_dataset)} full={n_val_full}"
         )
 
         # get train val data loaders
