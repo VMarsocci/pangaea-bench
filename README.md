@@ -124,8 +124,8 @@ If you want to fast-prototype your model, maybe you want to run fast experiments
 ## 🛠️ Setup
 Clone the repository:
 ```
-git clone https://github.com/VMarsocci/pangaea-bench.git
-cd pangaea-bench
+git clone https://github.com/VMarsocci/pangaea2.0-bench.git
+cd pangaea-bench2.0
 ```
 
 **Dependencies**
