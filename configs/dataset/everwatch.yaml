@@ -1,0 +1,57 @@
+_target_: pangaea.datasets.everwatch.EverWatch
+dataset_name: EverWatch
+root_path: ./data/everwatch
+download_url: kshitijrajsharma/geobench2-vhr
+auto_download: True
+
+img_size: 512
+multi_temporal: False
+multi_modal: False
+
+ignore_index: -1
+num_classes: 9
+classes:
+  - Background
+  - White Ibis
+  - Great Egret
+  - Great Blue Heron
+  - Snowy Egret
+  - Wood Stork
+  - Roseate Spoonbill
+  - Anhinga
+  - Unknown White
+
+distribution:
+  - 0.0
+  - 0.6010
+  - 0.2766
+  - 0.0154
+  - 0.0246
+  - 0.0263
+  - 0.0553
+  - 0.0007
+  - 0.0
+
+bands:
+  optical:
+    - B4
+    - B3
+    - B2
+
+data_mean:
+  optical:
+    - 68.2669
+    - 83.6471
+    - 35.0651
+
+data_std:
+  optical:
+    - 46.9421
+    - 50.4233
+    - 30.0300
+
+data_min:
+  optical: [0.0, 0.0, 0.0]
+
+data_max:
+  optical: [255.0, 255.0, 255.0]
