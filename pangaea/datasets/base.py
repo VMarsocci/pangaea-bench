@@ -126,10 +126,9 @@ class GeoFMSubset(Subset):
     """Custom subset class that retains dataset attributes."""
 
     def __init__(self, dataset, indices):
-        super().__init__(dataset, indices)
-
-        # Copy relevant attributes from the original dataset
+        # Copy attrs before super().__init__ so it carries Subset's own dataset/indices
         self.__dict__.update(dataset.__dict__)
+        super().__init__(dataset, indices)
 
     def filter_by_indices(self, indices):
         """Apply filtering by indices directly in this subset."""

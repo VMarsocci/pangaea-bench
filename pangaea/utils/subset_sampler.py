@@ -1,7 +1,7 @@
 import random
 from tqdm import tqdm
 import numpy as np
-from collections import defaultdict
+from collections import Counter, defaultdict
 from pangaea.datasets.base import GeoFMDataset
 from pangaea.datasets.base import GeoFMSubset
 
@@ -71,8 +71,7 @@ def balance_cls_indices(
      
      n_samples = len(dataset)
      for idx in range(n_samples):
-         label = dataset[idx]['target']
-         indices_by_class[label].append(idx)
+         indices_by_class[int(dataset[idx]['target'])].append(idx)
          
      selected_idx = []
      # For each class, sample the same fraction of indices
@@ -84,8 +83,40 @@ def balance_cls_indices(
          raise NotImplementedError
      
      other_idx = list(set(range(len(dataset))) - set(selected_idx))
-     
+
      return selected_idx, other_idx
+
+
+def balance_det_indices(
+        dataset:GeoFMDataset|GeoFMSubset,
+        strategy,
+        label_fraction=1.0,
+        logger=None):
+    """Bucket each image by its majority box class (empty images form one background bucket),
+    then select stratified across buckets or oversampled from the lowest-keyed buckets."""
+    keys = []
+    for idx in range(len(dataset)):
+        labels = dataset[idx]['labels'].tolist()
+        keys.append(Counter(labels).most_common(1)[0][0] if labels else -1)
+
+    if strategy == "stratified":
+        indices_by_class = defaultdict(list)
+        for idx, key in enumerate(keys):
+            indices_by_class[key].append(idx)
+        selected_idx = []
+        for indices in indices_by_class.values():
+            num_to_select = int(max(1, len(indices) * label_fraction))
+            selected_idx.extend(np.random.choice(indices, num_to_select, replace=False))
+    elif strategy == "oversampled":
+        sorted_indices = np.argsort(keys)
+        selected_idx = sorted_indices[:int(len(dataset) * label_fraction)]
+    else:
+        raise NotImplementedError(
+            f"object detection supports 'random' (via get_subset_indices), 'stratified', or 'oversampled', not {strategy!r}"
+        )
+
+    other_idx = list(set(range(len(dataset))) - set(selected_idx))
+    return selected_idx, other_idx
 
 
 def balance_seg_indices(
@@ -239,11 +270,11 @@ def get_subset_indices(dataset: GeoFMDataset,
         )
         return indices
     
-    elif task == "classification" or task == "classification_multi_label":
+    elif task in ("classification", "linear_classification", "knn_probe"):
          indices, _ = balance_cls_indices(
              dataset, strategy=strategy, label_fraction=label_fraction, logger=logger
          )
-    
+
     elif task == "segmentation" or task == "change_detection":
         indices, _ = balance_seg_indices(
             dataset, strategy=strategy, label_fraction=label_fraction, num_bins=num_bins, logger=logger
@@ -252,7 +283,13 @@ def get_subset_indices(dataset: GeoFMDataset,
         indices, _ = balance_reg_indices(
             dataset, strategy=strategy, label_fraction=label_fraction, num_bins=num_bins, logger=logger
         )
-    
+    elif task == "object_detection":
+        indices, _ = balance_det_indices(
+            dataset, strategy=strategy, label_fraction=label_fraction, logger=logger
+        )
+    else:
+        raise ValueError(f"unhandled task {task!r} for limited-label subsetting")
+
     return indices
 
 
