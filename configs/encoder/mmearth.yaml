@@ -1,0 +1,40 @@
+_target_: pangaea.encoders.mmearth_encoder.MMEarthConvNeXtV2Encoder
+
+encoder_weights: ./pretrained_models/pt-all_mod_atto_1M_64_uncertainty_56-8_checkpoint-199.pth
+download_url: https://sid.erda.dk/share_redirect/g23YOnaaTp/pt-all_mod_atto_1M_64_uncertainty_56-8/checkpoint-199.pth
+
+model_name: convnextv2_atto
+ckpt_name: pt-all_mod_atto_1M_64_uncertainty_56-8
+
+input_size: 56
+patch_size: 8
+use_orig_stem: False
+num_classes: 1000
+embed_dim: 320
+
+input_bands:
+  optical:
+    - B1
+    - B2
+    - B3
+    - B4
+    - B5
+    - B6
+    - B7
+    - B8A
+    - B8
+    - B9
+    - B11
+    - B12
+
+output_layers:
+  - 0
+  - 1
+  - 2
+  - 3
+
+output_dim:
+  - 40
+  - 80
+  - 160
+  - 320
