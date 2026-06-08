@@ -45,6 +45,12 @@ class MMEarthConvNeXtV2Encoder(Encoder):
         self.use_orig_stem = use_orig_stem
         self.num_classes = num_classes
         self.ckpt_name = ckpt_name
+        if "optical" in input_bands:
+            self.primary_modality = "optical"
+        elif "sar" in input_bands:
+            self.primary_modality = "sar"
+        else:
+            raise ValueError("MMEarthConvNeXtV2Encoder requires 'optical' or 'sar' in input_bands.")
 
         self.model = torch.hub.load(
             "vishalned/MMEarth-train",
@@ -53,7 +59,7 @@ class MMEarthConvNeXtV2Encoder(Encoder):
             ckpt_name=self.ckpt_name,
             pretrained=False,
             linear_probe=True,
-            in_chans=len(input_bands["optical"]),
+            in_chans=len(input_bands[self.primary_modality]),
             patch_size=self.patch_size,
             img_size=self.input_size,
             num_classes=self.num_classes,
@@ -137,7 +143,7 @@ class MMEarthConvNeXtV2Encoder(Encoder):
         self.parameters_warning(missing, incompatible_shape, logger)
 
     def forward(self, images: dict[str, torch.Tensor]) -> list[torch.Tensor]:
-        x = images["optical"].squeeze(2).float()
+        x = images[self.primary_modality].squeeze(2).float()
 
         stage_outputs = []
         if self.model.use_orig_stem:
