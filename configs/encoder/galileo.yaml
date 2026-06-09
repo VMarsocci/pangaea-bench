@@ -1,0 +1,37 @@
+_target_: pangaea.encoders.galileo_encoder.Galileo_Encoder
+
+# Folder containing Galileo files: config.json and encoder.pt
+encoder_weights: ./pretrained_models/galileo_nano
+download_url: https://huggingface.co/nasaharvest/galileo
+model_subdir: models/nano
+
+input_size: 96
+patch_size: 8
+input_resolution_m: 10
+default_month: 6
+
+embed_dim: 128
+
+input_bands:
+  optical:
+    - B2
+    - B3
+    - B4
+    - B5
+    - B6
+    - B7
+    - B8
+    - B8A
+    - B11
+    - B12
+  sar:
+    - VV
+    - VH
+
+output_layers:
+  - 3
+  - 5
+  - 7
+  - 11
+
+output_dim: 128
