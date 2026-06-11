@@ -1,6 +1,6 @@
 _target_: pangaea.encoders.prithvi2_encoder.Prithvi2_Encoder
 encoder_weights: ./pretrained_models/Prithvi_EO_V2_100M_TL.pt
-download_url: False
+download_url: https://huggingface.co/ibm-nasa-geospatial/Prithvi-EO-2.0-100M-TL/resolve/main/Prithvi_EO_V2_100M_TL.pt
 
 # Model architecture (100M parameters)
 embed_dim: 768
