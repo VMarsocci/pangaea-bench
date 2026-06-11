@@ -1,5 +1,5 @@
 _target_: pangaea.encoders.prithvi2_encoder.Prithvi2_Encoder
-encoder_weights: ./pretrained_models/Prithvi/Prithvi-EO-2.0-100M-TL/Prithvi_EO_V2_100M_TL.pt
+encoder_weights: ./pretrained_models/Prithvi_EO_V2_100M_TL.pt
 download_url: False
 
 # Model architecture (100M parameters)
