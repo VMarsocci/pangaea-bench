@@ -248,7 +248,7 @@ class BandPadding(BasePreprocessor):
                     self.used_bands_indices[k]
                 ]
             else:
-                reference = data["image"](list(data["image"].keys())[0])
+                reference = data["image"][list(data["image"].keys())[0]]
                 size = self.avail_bands_mask[k].shape + reference.shape[1:]
                 padded_image = torch.full(
                     size, fill_value=self.fill_value, dtype=reference.dtype
@@ -756,17 +756,17 @@ class Resize(BasePreprocessor):
                     interpolation=T.InterpolationMode.NEAREST,
                 ).squeeze(0)
 
-        if "weights" in data and isinstance(data["weights"], torch.Tensor):
-            weights_interp = (
-                T.InterpolationMode.BILINEAR
-                if torch.is_floating_point(data["weights"])
-                else T.InterpolationMode.NEAREST
-            )
-            data["weights"] = TF.resize(
-                data["weights"].unsqueeze(0),
-                size=self.size,
-                interpolation=weights_interp,
-            ).squeeze(0)
+            if "weights" in data and isinstance(data["weights"], torch.Tensor):
+                weights_interp = (
+                    T.InterpolationMode.BILINEAR
+                    if torch.is_floating_point(data["weights"])
+                    else T.InterpolationMode.NEAREST
+                )
+                data["weights"] = TF.resize(
+                    data["weights"].unsqueeze(0),
+                    size=self.size,
+                    interpolation=weights_interp,
+                ).squeeze(0)
 
         return data
 
@@ -932,18 +932,15 @@ class RandomResizedCrop(BasePreprocessor):
                     T.InterpolationMode.NEAREST,
                 ).squeeze(0)
 
-        else:
-            data["target"] = TF.crop(data["target"], i, j, h, w)
-
-        if "weights" in data and isinstance(data["weights"], torch.Tensor):
-            weights_interp = (
-                T.InterpolationMode.BILINEAR
-                if torch.is_floating_point(data["weights"])
-                else T.InterpolationMode.NEAREST
-            )
-            data["weights"] = TF.resized_crop(
-                data["weights"].unsqueeze(0), i, j, h, w, self.size, weights_interp
-            ).squeeze(0)
+            if "weights" in data and isinstance(data["weights"], torch.Tensor):
+                weights_interp = (
+                    T.InterpolationMode.BILINEAR
+                    if torch.is_floating_point(data["weights"])
+                    else T.InterpolationMode.NEAREST
+                )
+                data["weights"] = TF.resized_crop(
+                    data["weights"].unsqueeze(0), i, j, h, w, self.size, weights_interp
+                ).squeeze(0)
 
         return data
 
