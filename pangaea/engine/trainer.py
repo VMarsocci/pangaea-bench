@@ -722,6 +722,9 @@ class RegTrainer(Trainer):
         }
         self.best_metric = float("inf")
         self.best_metric_comp = operator.lt
+        self._criterion_accepts_weights = ( # compatibility for losses without weights argument
+            "weights" in inspect.signature(self.criterion.forward).parameters
+        )
 
     def compute_loss(self, logits: torch.Tensor, target: torch.Tensor, weights: torch.Tensor | None = None) -> torch.Tensor:
         """Compute the loss.
@@ -734,7 +737,7 @@ class RegTrainer(Trainer):
             torch.Tensor: loss value.
         """
         logits = logits.squeeze(dim=1)
-        if weights is not None and "weights" in inspect.signature(self.criterion.forward).parameters:
+        if weights is not None and self._criterion_accepts_weights:
             return self.criterion(logits, target, weights=weights)
         return self.criterion(logits, target)
 
