@@ -1,4 +1,5 @@
 import copy
+import inspect
 import logging
 import operator
 import os
@@ -732,7 +733,10 @@ class RegTrainer(Trainer):
         Returns:
             torch.Tensor: loss value.
         """
-        return self.criterion(logits.squeeze(dim=1), target, weights=weights) if weights is not None else self.criterion(logits.squeeze(dim=1), target)
+        logits = logits.squeeze(dim=1)
+        if weights is not None and "weights" in inspect.signature(self.criterion.forward).parameters:
+            return self.criterion(logits, target, weights=weights)
+        return self.criterion(logits, target)
 
     @torch.no_grad()
     def compute_logging_metrics(
