@@ -459,11 +459,13 @@ class RandomCrop(BasePreprocessor):
         if height < self.size[0] or width < self.size[1]:
             pad_img = max(self.size[0] - height, 0), max(self.size[1] - width, 0)
             height, width = height + 2 * pad_img[0], width + 2 * pad_img[1]
+            h_end = -pad_img[0] if pad_img[0] > 0 else None
+            w_end = -pad_img[1] if pad_img[1] > 0 else None
             for k, v in data["image"].items():
                 padded_img = (
                     self.pad_value[k].reshape(-1, 1, 1, 1).repeat(1, t, height, width)
                 )
-                padded_img[:, :, pad_img[0] : -pad_img[0], pad_img[1] : -pad_img[1]] = v
+                padded_img[:, :, pad_img[0]:h_end, pad_img[1]:w_end] = v
                 data["image"][k] = padded_img
 
             padding = [pad_img[1], pad_img[0], pad_img[1], pad_img[0]]
@@ -632,9 +634,7 @@ class ImportanceRandomCrop(RandomCrop):
         self.check_size(data)
 
         if self.pad_if_needed:
-            data, height, width = self.check_pad(data)
-        else:
-            _, _, height, width = data["image"][list(data["image"].keys())[0]].shape
+            data = self.check_pad(data)
 
         valid = data["target"] != self.ignore_index
         weight_map = torch.full(
