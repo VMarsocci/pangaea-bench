@@ -466,9 +466,10 @@ class RandomCrop(BasePreprocessor):
                 padded_img[:, :, pad_img[0] : -pad_img[0], pad_img[1] : -pad_img[1]] = v
                 data["image"][k] = padded_img
 
+            padding = [pad_img[1], pad_img[0], pad_img[1], pad_img[0]]
             data["target"] = TF.pad(
                 data["target"],
-                padding=padded_img,
+                padding=padding,
                 fill=self.ignore_index,
                 padding_mode="constant",
             )
@@ -476,7 +477,7 @@ class RandomCrop(BasePreprocessor):
             if 'weights' in data:
                 data["weights"] = TF.pad(
                     data["weights"],
-                    padding=padded_img,
+                    padding=padding,
                     fill=0.0,
                     padding_mode="constant",
                 )
