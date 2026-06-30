@@ -135,6 +135,8 @@ class Trainer:
             weights = data.get("weights", None)
             image = {modality: value.to(self.device) for modality, value in image.items()}
             target = target.to(self.device)
+            if weights is not None:
+                weights = weights.to(self.device)
 
             self.training_stats["data_time"].update(time.time() - end_time)
 
