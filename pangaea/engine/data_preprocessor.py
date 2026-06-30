@@ -473,6 +473,14 @@ class RandomCrop(BasePreprocessor):
                 padding_mode="constant",
             )
 
+            if 'weights' in data:
+                data["weights"] = TF.pad(
+                    data["weights"],
+                    padding=padded_img,
+                    fill=0.0,
+                    padding_mode="constant",
+                )
+
         return data
 
     def __call__(
@@ -503,6 +511,9 @@ class RandomCrop(BasePreprocessor):
             data["image"][k] = TF.crop(v, i, j, h, w)
 
         data["target"] = TF.crop(data["target"], i, j, h, w)
+
+        if 'weights' in data:
+            data["weights"] = TF.crop(data["weights"], i, j, h, w)
 
         return data
 
@@ -646,6 +657,9 @@ class ImportanceRandomCrop(RandomCrop):
 
         data["target"] = TF.crop(data["target"], i, j, h, w)
 
+        if "weights" in data:
+            data["weights"] = TF.crop(data["weights"], i, j, h, w)
+
         return data
 
 
@@ -740,6 +754,18 @@ class Resize(BasePreprocessor):
                     size=self.size,
                     interpolation=T.InterpolationMode.NEAREST,
                 ).squeeze(0)
+
+        if "weights" in data and isinstance(data["weights"], torch.Tensor):
+            weights_interp = (
+                T.InterpolationMode.BILINEAR
+                if torch.is_floating_point(data["weights"])
+                else T.InterpolationMode.NEAREST
+            )
+            data["weights"] = TF.resize(
+                data["weights"].unsqueeze(0),
+                size=self.size,
+                interpolation=weights_interp,
+            ).squeeze(0)
 
         return data
 
@@ -907,6 +933,16 @@ class RandomResizedCrop(BasePreprocessor):
 
         else:
             data["target"] = TF.crop(data["target"], i, j, h, w)
+
+        if "weights" in data and isinstance(data["weights"], torch.Tensor):
+            weights_interp = (
+                T.InterpolationMode.BILINEAR
+                if torch.is_floating_point(data["weights"])
+                else T.InterpolationMode.NEAREST
+            )
+            data["weights"] = TF.resized_crop(
+                data["weights"].unsqueeze(0), i, j, h, w, self.size, weights_interp
+            ).squeeze(0)
 
         return data
 

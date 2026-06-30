@@ -132,6 +132,7 @@ class Trainer:
         end_time = time.time()
         for batch_idx, data in enumerate(self.train_loader):
             image, target = data["image"], data["target"]
+            weights = data.get("weights", None)
             image = {modality: value.to(self.device) for modality, value in image.items()}
             target = target.to(self.device)
 
@@ -141,7 +142,7 @@ class Trainer:
                 "cuda", enabled=self.enable_mixed_precision, dtype=self.precision
             ):
                 logits = self.model(image, output_shape=target.shape[-2:])
-                loss = self.compute_loss(logits, target)
+                loss = self.compute_loss(logits, target, weights=weights)
 
             self.optimizer.zero_grad()
 
@@ -245,7 +246,7 @@ class Trainer:
             f"Loaded model from {resume_path}. Resume training from epoch {self.start_epoch}"
         )
 
-    def compute_loss(self, logits: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    def compute_loss(self, logits: torch.Tensor, target: torch.Tensor, weights: torch.Tensor | None = None) -> torch.Tensor:
         """Compute the loss.
 
         Args:
@@ -422,7 +423,7 @@ class LinearClassificationTrainer(Trainer):
         self.best_metric = float("-inf")
         self.best_metric_comp = operator.gt
 
-    def compute_loss(self, logits: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    def compute_loss(self, logits: torch.Tensor, target: torch.Tensor, weights: torch.Tensor | None = None) -> torch.Tensor:
 
         return self.criterion(logits, target)
 
@@ -593,7 +594,7 @@ class SegTrainer(Trainer):
         self.best_metric = float("-inf")
         self.best_metric_comp = operator.gt
 
-    def compute_loss(self, logits: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    def compute_loss(self, logits: torch.Tensor, target: torch.Tensor, weights: torch.Tensor | None = None) -> torch.Tensor:
         """Compute the loss.
 
         Args:
@@ -719,7 +720,7 @@ class RegTrainer(Trainer):
         self.best_metric = float("inf")
         self.best_metric_comp = operator.lt
 
-    def compute_loss(self, logits: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    def compute_loss(self, logits: torch.Tensor, target: torch.Tensor, weights: torch.Tensor | None = None) -> torch.Tensor:
         """Compute the loss.
 
         Args:
@@ -729,7 +730,7 @@ class RegTrainer(Trainer):
         Returns:
             torch.Tensor: loss value.
         """
-        return self.criterion(logits.squeeze(dim=1), target)
+        return self.criterion(logits.squeeze(dim=1), target, weights=weights) if weights is not None else self.criterion(logits.squeeze(dim=1), target)
 
     @torch.no_grad()
     def compute_logging_metrics(
