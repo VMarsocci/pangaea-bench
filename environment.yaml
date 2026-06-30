@@ -31,4 +31,4 @@ dependencies:
   - yacs
   - wandb
   - hydra-core
-
+  - scikit-image
