@@ -57,3 +57,14 @@ class DICELoss(torch.nn.Module):
 
         return dice_loss
 
+class WeightedMSELoss(torch.nn.Module):
+    def __init__(self) -> None:
+        super(WeightedMSELoss, self).__init__()
+
+    def forward(self, predictions: torch.Tensor, targets: torch.Tensor, weights: torch.Tensor | None = None) -> torch.Tensor:
+        mse = F.mse_loss(predictions, targets, reduction='none')
+        if weights is not None:
+            weighted_mse = (mse * weights).sum() / weights.sum().clamp(min=1e-8)
+        else:
+            weighted_mse = mse.mean()
+        return weighted_mse

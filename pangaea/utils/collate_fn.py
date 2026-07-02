@@ -38,7 +38,7 @@ def get_collate_fn(modalities: list[str]) -> Callable:
                         )
 
         # stack all images and targets
-        return {
+        return_dict = {
             "image": {
                 modality: torch.stack([x["image"][modality] for x in batch])
                 for modality in modalities
@@ -46,5 +46,10 @@ def get_collate_fn(modalities: list[str]) -> Callable:
             "target": torch.stack([x["target"] for x in batch]),
             "metadata": [sample["metadata"] for sample in batch]
         }
+
+        if "weights" in batch[0]:
+            return_dict["weights"] = torch.stack([x["weights"] for x in batch])
+
+        return return_dict
 
     return collate_fn
