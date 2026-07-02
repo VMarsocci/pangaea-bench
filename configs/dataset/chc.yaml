@@ -1,0 +1,39 @@
+_target_: pangaea.datasets.chc.CHCDataset
+dataset_name: CHCDataset
+root_path: ./data/chc
+download_url: https://sid.erda.dk/share_redirect/H4n8mswu1F
+auto_download: True
+img_size: 1024
+multi_temporal: 6
+multi_modal: False
+ignore_index: -1
+num_classes: 1
+classes:
+  - regression
+
+distribution:
+  - 1.
+
+bands:
+  optical:
+    - B2 # B
+    - B3 # G
+    - B4 # R
+    - B8A # NIR
+data_mean:
+  optical: [514.16294, 849.4592, 1033.3091, 2873.6320]
+data_std:
+  optical: [316.0711, 376.3348, 568.9334, 758.5220]
+data_min:
+  optical: [1., 1., 1., 1.]
+data_max:
+  optical: [15535., 14703., 28714., 59879.]
+
+img_merging: mean
+min_height: 3.
+confidence_z_value: 1.6  # corresponds to 90% confidence interval
+oversampling_factor: 1
+rm_vegetation_edges: True
+masking:
+  - veg
+weighting: none

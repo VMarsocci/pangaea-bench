@@ -24,6 +24,7 @@ This document provides a detailed overview of the datasets used in this reposito
   - [Multi-label Classification (e.g., m-BigEarthNet)](#for-multi-label-classification-eg-m-bigearthnet)
   - [Single-label Classification (e.g., m-EuroSat, m-Brick-Kiln)](#for-single-label-classification-ie-m-eurosat-m-brick-kiln-m-forestnet-m-pv4ger-m-so2sat)
   - [Semantic Segmentation (e.g., m-NZ-Cattle, m-SA-Crop-Type)](#for-semantic-segmentation-ie-m-cashew-plantation-m-chesapeake-landcover-m-neontree-m-nz-cattle-m-pv4ger-seg-and-m-sa-crop-type)
+- [CHC](#chc)
 
 ---
 
@@ -351,3 +352,15 @@ Note that `export GEO_BENCH_DIR=YOUR/PATH/DIR` is required.
     - The batch size can be larger since we're only doing inference
     - `finetune` is set to `false` as we're only using the pre-trained encoder
     - The task is set to `knn_probe_multi_label` to handle multiple labels per sample
+
+### CHC
+   ```
+    torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+    --config-name=train \
+    dataset=chc \
+    encoder=dofa \
+    decoder=reg_upernet_mt_ltae \
+    preprocessing=reg_default \
+    criterion=mse \
+    task=regression
+  ```
