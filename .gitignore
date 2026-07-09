@@ -22,3 +22,5 @@ data/mados/splits/*
 
 .vscode
 .idea
+
+scripts/*
