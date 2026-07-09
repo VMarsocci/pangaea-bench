@@ -2,6 +2,7 @@
 
 Three encoder variants are exposed:
 - ``SkySenseS2``    : Sentinel-2 ViT-Large only (optical).
+- ``SkySenseS1``    : Sentinel-1 ViT-Large only (radar).
 - ``SkySenseS2S1``  : Sentinel-2 + Sentinel-1 ViT-Large pair, outputs are
                       channel-concatenated at each output layer.
 - ``SkySenseVHR``   : VHR SwinTransformerV2-Huge backbone only.
@@ -1239,6 +1240,71 @@ class SkySenseS2(Encoder):
         if x.ndim == 5:          # (B, C, T, H, W) — squeeze temporal dim
             x = x.squeeze(2)
         return list(self.backbone(x))
+
+class SkySenseS1(Encoder):
+    """SkySense Sentinel-1 ViT-Large encoder.
+
+    Uses only the Sentinel-1 (radar) backbone from the SkySense checkpoint.
+    All 24 transformer layers are available; ``output_layers`` selects which
+    ones to return as feature maps.
+
+    The backbone operates on images of shape ``(B, C, H, W)`` where *C* equals
+    the number of bands listed in ``input_bands["sar"]`` after band
+    filtering by the Pangaea preprocessor.
+    """
+
+    def __init__(
+        self,
+        encoder_weights: str | Path,
+        input_size: int,
+        input_bands: dict[str, list[str]],
+        output_layers: list[int],
+        output_dim: int | list[int],
+        download_url: str = "",
+        drop_path_rate: float = 0.3,
+    ) -> None:
+        super().__init__(
+            model_name="skysense_s1",
+            encoder_weights=encoder_weights,
+            input_bands=input_bands,
+            input_size=input_size,
+            embed_dim=1024,
+            output_layers=output_layers,
+            output_dim=output_dim,
+            multi_temporal=False,
+            multi_temporal_output=False,
+            pyramid_output=False,
+            download_url=download_url,
+        )
+
+        n_sar = len(input_bands["sar"])
+        _out_indices = list(output_layers)
+        self.backbone = _VisionTransformer(
+            img_size=input_size,
+            patch_size=4,
+            in_channels=n_sar,
+            embed_dims=1024,
+            num_layers=24,
+            num_heads=16,
+            mlp_ratio=4,
+            out_indices=_out_indices,
+            drop_path_rate=drop_path_rate,
+            with_cls_token=True,
+            final_norm=False,
+        )
+
+    def load_encoder_weights(self, logger: Logger) -> None:
+        missing, incompatible = _load_backbone(
+            self.backbone, self.encoder_weights, "backbone", logger,
+        )
+        self.parameters_warning(missing, incompatible, logger)
+
+    def forward(self, image: dict[str, torch.Tensor], metadata=None) -> list[torch.Tensor]:
+        x = image["sar"]
+        if x.ndim == 5:          # (B, C, T, H, W) — squeeze temporal dim
+            x = x.squeeze(2)
+        return list(self.backbone(x))
+
 
 
 class SkySenseS2S1(Encoder):
