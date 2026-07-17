@@ -1,0 +1,54 @@
+_target_: pangaea.datasets.agbd.AGBD
+dataset_name: AGBD
+root_path: /scratch3/gsialelli/patches
+download_url: null
+auto_download: False
+
+img_size: 25
+multi_temporal: False
+multi_modal: False
+
+root_path_cluster: /cluster/scratch/gsialelli
+hold_out_region: null
+keep_region: False
+drop_overlaps: True
+eval_lite: True
+
+# for regression (agbd or rh98)
+target: "agbd" # agbd or rh98
+ignore_index: -1
+num_classes: 1
+classes:
+  - regression
+distribution:
+  - 1.
+
+# features
+bands:
+  optical:
+    - B1
+    - B2
+    - B3
+    - B4
+    - B5
+    - B6
+    - B7
+    - B8
+    - B8A
+    - B9
+    - B11
+    - B12
+
+# statistics
+
+data_mean:
+  optical: [0.1244767, 0.13442503, 0.15990143, 0.15322255, 0.2027034, 0.32371777, 0.3625338, 0.3777227, 0.38758147, 0.38764006, 0.29084504, 0.21135607]
+
+data_std:
+  optical: [0.024913007, 0.02851103, 0.032457292, 0.038697336, 0.042601082, 0.07086351, 0.08404868, 0.09149762, 0.08816632, 0.082269475, 0.07562889, 0.059278008]
+ 
+data_min:
+  optical: [1e-04, 1e-04, 1e-04, 1e-04, 0.0633, 0.0502, 0.0616, 0.0278, 0.055, 0.0012, 0.0954, 0.0975]
+
+data_max:
+  optical: [1.7, 2.1088, 2.12, 2.0032, 1.7413, 1.7228, 1.7084, 1.7312, 1.688, 1.7915, 1.648, 1.6775]

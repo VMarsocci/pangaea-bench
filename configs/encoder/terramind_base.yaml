@@ -1,0 +1,44 @@
+_target_: pangaea.encoders.terramind_encoder.terramind_v1_base
+encoder_weights: ./pretrained_models/TerraMind_v1_base.pt
+# See terramind_optical_tiny.yaml: the Google Drive link that was here is ssl4eo_dino's and
+# yields a DINO checkpoint, not TerraMind. Also unpinned the absolute /home/egm path.
+download_url: https://huggingface.co/ibm-esa-geospatial/TerraMind-1.0-base/resolve/main/TerraMind_v1_base.pt
+# ckpt_path: /home/vmarsocci/pangaea-bench/pretrained_models/TerraMind_v1_large.pt
+
+# dim: 768
+input_size: 224
+patch_size: 16
+merge_method: "mean"
+# in_chans: 13
+# num_heads: 6
+# depth: 12
+# mlp_ratio: 4
+# multi_temporal: False
+modalities: ["S2L2A", "S1GRD"]
+
+input_bands:
+  optical:
+    - B1
+    - B2
+    - B3
+    - B4
+    - B5
+    - B6
+    - B7
+    - B8
+    - B8A
+    # - B9
+    - B10
+    - B11
+    - B12
+  sar:
+    - VV
+    - VH
+
+output_layers:
+  - 3
+  - 5
+  - 7
+  - 11
+
+output_dim: 768

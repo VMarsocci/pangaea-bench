@@ -8,7 +8,7 @@ from typing import Optional, Tuple, List, Dict, Union
 from abc import ABC, abstractmethod
 from huggingface_hub import hf_hub_download
 from PIL import Image
-import albumentations as A
+# import albumentations as A
 import numpy as np
 import torch
 import torch.nn.functional as F
@@ -890,135 +890,135 @@ class TokTransform(AbstractTransform):
         return sample
 
 
-class DetectionTransform(AbstractTransform):
+# class DetectionTransform(AbstractTransform):
 
-    def __init__(self, det_threshold=0.6, det_max_instances=None, bbox_order='dist_to_orig', coord_bins=1000,
-                 min_visibility=0.0, return_raw=False):
-        self.det_threshold = det_threshold
-        self.det_max_instances = det_max_instances
-        self.coord_bins = coord_bins
-        self.min_visibility = min_visibility
-        self.return_raw = return_raw
+#     def __init__(self, det_threshold=0.6, det_max_instances=None, bbox_order='dist_to_orig', coord_bins=1000,
+#                  min_visibility=0.0, return_raw=False):
+#         self.det_threshold = det_threshold
+#         self.det_max_instances = det_max_instances
+#         self.coord_bins = coord_bins
+#         self.min_visibility = min_visibility
+#         self.return_raw = return_raw
 
-        if bbox_order == 'area':
-            self.bbox_order = self.order_bboxes_by_area
-        elif bbox_order == 'score':
-            self.bbox_order = self.order_bboxes_by_score
-        elif bbox_order == 'random':
-            self.bbox_order = self.shuffle_bboxes
-        else:
-            self.bbox_order = self.order_bboxes_by_dist_to_orig
+#         if bbox_order == 'area':
+#             self.bbox_order = self.order_bboxes_by_area
+#         elif bbox_order == 'score':
+#             self.bbox_order = self.order_bboxes_by_score
+#         elif bbox_order == 'random':
+#             self.bbox_order = self.shuffle_bboxes
+#         else:
+#             self.bbox_order = self.order_bboxes_by_dist_to_orig
 
-    @staticmethod
-    def order_bboxes_by_area(bboxes):
-        return sorted(bboxes, key=lambda x: (x[2] - x[0]) * (x[3] - x[1]), reverse=True)
+#     @staticmethod
+#     def order_bboxes_by_area(bboxes):
+#         return sorted(bboxes, key=lambda x: (x[2] - x[0]) * (x[3] - x[1]), reverse=True)
 
-    @staticmethod
-    def order_bboxes_by_dist_to_orig(bboxes):
-        return sorted(bboxes, key=lambda x: x[0] ** 2 + x[1] ** 2)
+#     @staticmethod
+#     def order_bboxes_by_dist_to_orig(bboxes):
+#         return sorted(bboxes, key=lambda x: x[0] ** 2 + x[1] ** 2)
 
-    @staticmethod
-    def order_bboxes_by_score(bboxes):
-        return sorted(bboxes, key=lambda x: x[5], reverse=True)
+#     @staticmethod
+#     def order_bboxes_by_score(bboxes):
+#         return sorted(bboxes, key=lambda x: x[5], reverse=True)
 
-    @staticmethod
-    def shuffle_bboxes(bboxes):
-        return sorted(bboxes, key=lambda x: random.random())
+#     @staticmethod
+#     def shuffle_bboxes(bboxes):
+#         return sorted(bboxes, key=lambda x: random.random())
 
-    def convert_detection_instance(self, instances):
-        """Convert instances dict to list of lists where each list takes the form:
-        [xmin, ymin, xmax, ymax, class_name, score]
-        """
+#     def convert_detection_instance(self, instances):
+#         """Convert instances dict to list of lists where each list takes the form:
+#         [xmin, ymin, xmax, ymax, class_name, score]
+#         """
 
-        instances = [inst['boxes'] + [inst['class_name'], inst['score']] for inst in instances if
-                     inst['score'] >= self.det_threshold]
-        return instances
+#         instances = [inst['boxes'] + [inst['class_name'], inst['score']] for inst in instances if
+#                      inst['score'] >= self.det_threshold]
+#         return instances
 
-    def bboxes_hflip(self, bboxes: List[Tuple], image_size: Tuple, flip: bool):
-        image_height, image_width = image_size
-        if flip:
-            bboxes = [tuple(A.bbox_hflip(bbox[:4], rows=image_height, cols=image_width)) + tuple(bbox[4:])
-                      for bbox in bboxes]
+#     def bboxes_hflip(self, bboxes: List[Tuple], image_size: Tuple, flip: bool):
+#         image_height, image_width = image_size
+#         if flip:
+#             bboxes = [tuple(A.bbox_hflip(bbox[:4], rows=image_height, cols=image_width)) + tuple(bbox[4:])
+#                       for bbox in bboxes]
 
-        return bboxes
+#         return bboxes
 
-    def bboxes_crop_and_resize(self, bboxes: List[Tuple], crop_coords: Tuple, orig_size: Tuple):
-        """Crop and resize bounding boxes
+#     def bboxes_crop_and_resize(self, bboxes: List[Tuple], crop_coords: Tuple, orig_size: Tuple):
+#         """Crop and resize bounding boxes
 
-        Args:
-            bboxes: Bounding boxes to crop and resize
-            crop_coords: Coordinates of the crop (top, left, h, w)
-            orig_size: Size of the original image
+#         Args:
+#             bboxes: Bounding boxes to crop and resize
+#             crop_coords: Coordinates of the crop (top, left, h, w)
+#             orig_size: Size of the original image
 
-        Returns:
-            Cropped and resized bounding boxes
-        """
-        orig_height, orig_width = orig_size
-        top, left, h, w = crop_coords
-        xmin, ymin, xmax, ymax = left, top, left + w, top + h
-        bboxes = [tuple(A.bbox_crop(bbox[:4], x_min=xmin, y_min=ymin, x_max=xmax, y_max=ymax, rows=orig_height,
-                                    cols=orig_width)) + tuple(bbox[4:])
-                  for bbox in bboxes]
-        bboxes = A.core.bbox_utils.filter_bboxes(bboxes, rows=h, cols=w, min_visibility=self.min_visibility)
-        # No need to resize, bounding boxes in albumentations format are scale invariant
+#         Returns:
+#             Cropped and resized bounding boxes
+#         """
+#         orig_height, orig_width = orig_size
+#         top, left, h, w = crop_coords
+#         xmin, ymin, xmax, ymax = left, top, left + w, top + h
+#         bboxes = [tuple(A.bbox_crop(bbox[:4], x_min=xmin, y_min=ymin, x_max=xmax, y_max=ymax, rows=orig_height,
+#                                     cols=orig_width)) + tuple(bbox[4:])
+#                   for bbox in bboxes]
+#         bboxes = A.core.bbox_utils.filter_bboxes(bboxes, rows=h, cols=w, min_visibility=self.min_visibility)
+#         # No need to resize, bounding boxes in albumentations format are scale invariant
 
-        return bboxes
+#         return bboxes
 
-    def order_and_filter_bboxes(self, bboxes):
-        if self.det_max_instances is not None and len(bboxes) > self.det_max_instances:
-            bboxes = self.order_bboxes_by_score(bboxes)[:self.det_max_instances]
+#     def order_and_filter_bboxes(self, bboxes):
+#         if self.det_max_instances is not None and len(bboxes) > self.det_max_instances:
+#             bboxes = self.order_bboxes_by_score(bboxes)[:self.det_max_instances]
 
-        return self.bbox_order(bboxes)
+#         return self.bbox_order(bboxes)
 
-    def convert_bboxes_to_string(self, bboxes: List[Tuple]):
-        """Convert bounding boxes to a string
+#     def convert_bboxes_to_string(self, bboxes: List[Tuple]):
+#         """Convert bounding boxes to a string
 
-        Args:
-            bboxes: Bounding boxes
+#         Args:
+#             bboxes: Bounding boxes
 
-        Returns:
-            String representation of the bounding boxes
-        """
-        # Remove score, quantize coordinates
-        bins = self.coord_bins
+#         Returns:
+#             String representation of the bounding boxes
+#         """
+#         # Remove score, quantize coordinates
+#         bins = self.coord_bins
 
-        bboxes = [
-            [
-                f"xmin={round(xmin * (bins - 1))}",
-                f"ymin={round(ymin * (bins - 1))}",
-                f"xmax={round(xmax * (bins - 1))}",
-                f"ymax={round(ymax * (bins - 1))}",
-                cls,
-            ]
-            for (xmin, ymin, xmax, ymax, cls, score) in bboxes
-        ]
-        # Convert each bounding box to a string
-        bboxes = [' '.join(b) for b in bboxes]
-        # Convert the list to a str
-        return ' '.join(bboxes)
+#         bboxes = [
+#             [
+#                 f"xmin={round(xmin * (bins - 1))}",
+#                 f"ymin={round(ymin * (bins - 1))}",
+#                 f"xmax={round(xmax * (bins - 1))}",
+#                 f"ymax={round(ymax * (bins - 1))}",
+#                 cls,
+#             ]
+#             for (xmin, ymin, xmax, ymax, cls, score) in bboxes
+#         ]
+#         # Convert each bounding box to a string
+#         bboxes = [' '.join(b) for b in bboxes]
+#         # Convert the list to a str
+#         return ' '.join(bboxes)
 
-    def load(self, path):
-        with open(path, 'r') as f:
-            sample = json.load(f)
+#     def load(self, path):
+#         with open(path, 'r') as f:
+#             sample = json.load(f)
 
-        return sample
+#         return sample
 
-    def preprocess(self, sample):
-        instances = sample['instances']
-        return self.convert_detection_instance(instances)
+#     def preprocess(self, sample):
+#         instances = sample['instances']
+#         return self.convert_detection_instance(instances)
 
-    def image_augment(self, bboxes: List[Tuple], crop_coords: Tuple, flip: bool, orig_size: Tuple, target_size: Tuple,
-                      rand_aug_idx=None, resample_mode: str = None):
-        bboxes = self.bboxes_crop_and_resize(bboxes, crop_coords, orig_size)
-        bboxes = self.bboxes_hflip(bboxes, target_size, flip)
-        bboxes = self.order_and_filter_bboxes(bboxes)
-        return bboxes
+#     def image_augment(self, bboxes: List[Tuple], crop_coords: Tuple, flip: bool, orig_size: Tuple, target_size: Tuple,
+#                       rand_aug_idx=None, resample_mode: str = None):
+#         bboxes = self.bboxes_crop_and_resize(bboxes, crop_coords, orig_size)
+#         bboxes = self.bboxes_hflip(bboxes, target_size, flip)
+#         bboxes = self.order_and_filter_bboxes(bboxes)
+#         return bboxes
 
-    def postprocess(self, bboxes):
-        if self.return_raw:
-            return bboxes
-        bboxes = self.convert_bboxes_to_string(bboxes)
-        return bboxes
+#     def postprocess(self, bboxes):
+#         if self.return_raw:
+#             return bboxes
+#         bboxes = self.convert_bboxes_to_string(bboxes)
+#         return bboxes
 
 
 class CaptionTransform(AbstractTransform):
@@ -2731,7 +2731,7 @@ def build_terrammind_vit(
 
     if encoder_weights is not None:
         # Load model from checkpoint
-        state_dict = torch.load(encoder_weights, map_location="cpu", weights_only=True)
+        state_dict = torch.load(encoder_weights, map_location="cpu", weights_only=False)
         loaded_keys = model.load_state_dict(state_dict, strict=False)
         if loaded_keys.missing_keys:
             logger.warning(f"Missing keys in encoder_weights {encoder_weights}: {loaded_keys.missing_keys}")
@@ -2751,6 +2751,42 @@ def build_terrammind_vit(
 
     return model
 
+def terramind_v1_tiny(**kwargs):
+    model = build_terrammind_vit(
+        variant="terramind_v1_tiny",
+        encoder_depth=12,
+        # decoder_depth=4,
+        dim=192,
+        num_heads=3,
+        mlp_ratio=4,
+        qkv_bias=True,
+        proj_bias=True,
+        mlp_bias=True,
+        norm_layer=partial(LayerNorm, eps=1e-6, bias=False),
+        act_layer=nn.GELU,
+        gated_mlp=False,
+        pretrained_bands=PRETRAINED_BANDS,
+        **kwargs
+    )
+    return model
+
+def terramind_v1_small(**kwargs):
+    model = build_terrammind_vit(
+        variant="terramind_v1_small",
+        encoder_depth=12,
+        dim=384,
+        num_heads=6,
+        mlp_ratio=4,
+        qkv_bias=True,
+        proj_bias=True,
+        mlp_bias=True,
+        norm_layer=partial(LayerNorm, eps=1e-6, bias=False),
+        act_layer=nn.GELU,
+        gated_mlp=False,
+        pretrained_bands=PRETRAINED_BANDS,
+        **kwargs
+    )
+    return model
 
 # @TERRATORCH_BACKBONE_REGISTRY.register
 def terramind_v1_base(**kwargs):

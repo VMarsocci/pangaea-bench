@@ -1,6 +1,8 @@
 _target_: pangaea.encoders.terramind_encoder.terramind_v1_large
-encoder_weights: /home/vmarsocci/pangaea-bench/pretrained_models/TerraMind_v1_large.pt
-download_url: #https://drive.google.com/uc?id=1CseO5vvMReGlAulm5o4ZgbjUgj8VlAH7&export=download&confirm=yes
+encoder_weights: ./pretrained_models/TerraMind_v1_large.pt
+# The commented-out URL here used /blob/ (the HTML page) rather than /resolve/ (the file),
+# so it would have downloaded a web page. Enabled with the correct /resolve/ form.
+download_url: https://huggingface.co/ibm-esa-geospatial/TerraMind-1.0-large/resolve/main/TerraMind_v1_large.pt
 # ckpt_path: /home/vmarsocci/pangaea-bench/pretrained_models/TerraMind_v1_large.pt
 
 # dim: 768

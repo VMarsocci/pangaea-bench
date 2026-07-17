@@ -1,0 +1,44 @@
+_target_: pangaea.encoders.terramind_encoder.terramind_v1_tiny
+encoder_weights: ./pretrained_models/TerraMind_v1_tiny.pt
+# Was a Google Drive link inherited from upstream's terramind_large.yaml -- but that id
+# is ssl4eo_dino's, so it downloads a DINO training checkpoint (student/teacher/dino_loss,
+# 687 MB) which shares ZERO keys with TerraMind. It loaded silently via strict=False and
+# the encoder trained from random init. This is the authors' own repo; 203 MB, Apache-2.0,
+# md5 d345af451025c537689a2b8169731cae, and it covers 123/123 of this model's parameters.
+download_url: https://huggingface.co/ibm-esa-geospatial/TerraMind-1.0-tiny/resolve/main/TerraMind_v1_tiny.pt
+# ckpt_path: /home/vmarsocci/pangaea-bench/pretrained_models/TerraMind_v1_large.pt
+
+# dim: 768
+input_size: 224
+patch_size: 16
+merge_method: "mean"
+# in_chans: 13
+# num_heads: 6
+# depth: 12
+# mlp_ratio: 4
+# multi_temporal: False
+modalities: ["S2L2A"]
+
+input_bands:
+  optical:
+    - B1
+    - B2
+    - B3
+    - B4
+    - B5
+    - B6
+    - B7
+    - B8
+    - B8A
+    # - B9
+    - B10
+    - B11
+    - B12
+
+output_layers:
+  - 3
+  - 5
+  - 7
+  - 11
+
+output_dim: 192

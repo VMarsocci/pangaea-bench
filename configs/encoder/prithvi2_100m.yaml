@@ -1,0 +1,39 @@
+_target_: pangaea.encoders.prithvi2_encoder.Prithvi2_Encoder
+encoder_weights: ./pretrained_models/Prithvi_EO_V2_100M_TL.pt
+download_url: https://huggingface.co/ibm-nasa-geospatial/Prithvi-EO-2.0-100M-TL/resolve/main/Prithvi_EO_V2_100M_TL.pt?download=true
+
+# Model architecture (100M parameters)
+embed_dim: 768
+input_size: 224
+in_chans: 6
+patch_size: [1, 16, 16]
+num_heads: 12
+depth: 12
+mlp_ratio: 4.0
+drop_path: 0.0
+
+# Multi-temporal support
+num_frames: ${dataset.multi_temporal}
+
+# Coordinate encoding options
+coords_encoding: null  # Can be ["time", "location"] if needed
+coords_scale_learn: false
+
+# Input bands configuration
+input_bands:
+  optical:
+    - B2
+    - B3
+    - B4
+    - B8A
+    - B11
+    - B12
+
+# Output configuration
+output_layers:
+  - 3
+  - 5
+  - 7
+  - 11
+
+output_dim: 768

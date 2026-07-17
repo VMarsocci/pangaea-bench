@@ -1,0 +1,60 @@
+_target_: pangaea.datasets.agbdlite.AGBDLite
+dataset_name: AGBDLite
+root_path: ./data/AGBDLite
+download_url: "https://zenodo.org/api/records/18485030"
+auto_download: True
+
+img_size: 25
+multi_temporal: False
+multi_modal: False
+
+root_path_cluster: /cluster/scratch/gsialelli
+eval_big: False # whether to evaluate on AGBD-test instead of AGBD-Lite-test
+lite_chunk_size: 1 # should be 32, once we can load in batches
+
+# for regression (agbd or rh98)
+target: "agbd" # agbd or rh98
+ignore_index: -1
+num_classes: 1
+classes:
+  - regression
+distribution:
+  - 1.
+
+# features
+bands:
+  optical:
+    - B1
+    - B2
+    - B3
+    - B4
+    - B5
+    - B6
+    - B7
+    - B8
+    - B8A
+    - B9
+    - B11
+    - B12
+  # alos:
+  #   - HH
+  #   - HV
+
+
+# statistics
+
+data_mean:
+  optical: [0.1235409, 0.13345453, 0.15880638, 0.15243885, 0.20159355, 0.32084775, 0.35937154, 0.37473023, 0.38475886, 0.3847485, 0.28990296, 0.21002403]
+  # alos: [-10.24998, -16.50024]
+
+data_std:
+  optical: [0.023037845, 0.02647069, 0.030844089, 0.03733916, 0.041663107, 0.06969897, 0.08277564, 0.090343215, 0.086930655, 0.08083575, 0.075588495, 0.058553487]
+  # alos: [8.61129, 8.732289]
+ 
+data_min:
+  optical: [1e-04, 1e-04, 0.0283, 0.0218, 0.0795, 0.0695, 0.0794, 0.0524, 0.0846, 0.0037, 0.0974, 0.0977]
+  # alos: [-83.0, -83.0]
+
+data_max:
+  optical: [1.4194, 2.1088, 1.9552, 1.856, 1.6232, 1.6055, 1.586, 1.7232, 1.593, 1.7081, 1.61, 1.6255]
+  # alos: [13.297462, 11.688309]

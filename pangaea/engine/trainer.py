@@ -5,6 +5,7 @@ import os
 import pathlib
 import time
 import numpy as np
+import math
 
 import torch
 import torch.nn as nn
@@ -30,7 +31,7 @@ class Trainer:
         precision: str,
         use_wandb: bool,
         ckpt_interval: int,
-        eval_interval: int,
+        eval_interval: float,
         log_interval: int,
         best_metric_key: str,
     ):
@@ -49,7 +50,7 @@ class Trainer:
             precision (str): precision to train the model (fp32, fp16, bfp16).
             use_wandb (bool): whether to use wandb for logging.
             ckpt_interval (int): interval to save the checkpoint.
-            eval_interval (int): interval to evaluate the model.
+            eval_interval (float): interval to evaluate the model in epoch units.
             log_interval (int): interval to log the training information.
             best_metric_key (str): metric that determines best checkpoints.
         """
@@ -67,9 +68,11 @@ class Trainer:
         self.device = device
         self.use_wandb = use_wandb
         self.ckpt_interval = ckpt_interval
-        self.eval_interval = eval_interval
+        self.eval_interval = float(eval_interval)
+        if self.eval_interval <= 0: raise ValueError("eval_interval must be > 0.")
         self.log_interval = log_interval
         self.best_metric_key = best_metric_key
+        self.intra_epoch_eval_steps = self._compute_intra_epoch_eval_steps()
 
         self.training_stats = {
             name: RunningAverageMeter(length=self.batch_per_epoch)
@@ -101,10 +104,8 @@ class Trainer:
         # end_time = time.time()
         for epoch in range(self.start_epoch, self.n_epochs):
             # train the network for one epoch
-            if epoch % self.eval_interval == 0:
-                metrics, used_time = self.evaluator(self.model, f"epoch {epoch}")
-                self.training_stats["eval_time"].update(used_time)
-                self.save_best_checkpoint(metrics, epoch)
+            if self.eval_interval >= 1 and epoch % int(self.eval_interval) == 0:
+                self._run_validation(epoch, f"epoch {epoch}")
 
             self.logger.info("============ Starting epoch %i ... ============" % epoch)
             # set sampler
@@ -159,6 +160,13 @@ class Trainer:
             if (batch_idx + 1) % self.log_interval == 0:
                 self.log(batch_idx + 1, epoch)
 
+            if self.eval_interval < 1 and (batch_idx + 1) in self.intra_epoch_eval_steps:
+                self._run_validation(
+                    epoch,
+                    f"epoch {epoch} | step {batch_idx + 1}/{self.batch_per_epoch}",
+                )
+                self.model.train()
+
             self.lr_scheduler.step()
 
             if self.use_wandb and self.rank == 0:
@@ -177,6 +185,26 @@ class Trainer:
 
             self.training_stats["batch_time"].update(time.time() - end_time)
             end_time = time.time()
+
+    def _compute_intra_epoch_eval_steps(self) -> set[int]:
+        """Compute batch indices where validation should run within an epoch."""
+        
+        if self.eval_interval >= 1: return set()
+
+        n_eval = int(math.floor(1.0 / self.eval_interval))
+        if n_eval == 1 : return set()
+
+        eval_steps = {
+            max(1, min(self.batch_per_epoch, int(round(self.batch_per_epoch * i * self.eval_interval))))
+            for i in range(1, n_eval + 1)
+        }
+        return eval_steps
+
+    def _run_validation(self, epoch: int, model_name: str) -> None:
+        """Run validation, track timing, and update best checkpoint."""
+        metrics, used_time = self.evaluator(self.model, model_name)
+        self.training_stats["eval_time"].update(used_time)
+        self.save_best_checkpoint(metrics, epoch)
 
     def get_checkpoint(self, epoch: int) -> dict[str, dict | int]:
         """Create a checkpoint dictionary, containing references to the pytorch tensors.
@@ -309,8 +337,11 @@ class Trainer:
         left_batch_all = (
             self.batch_per_epoch * (self.n_epochs - epoch - 1) + left_batch_this_epoch
         )
-        left_eval_times = ((self.n_epochs - 0.5) // self.eval_interval + 2
-                           - self.training_stats["eval_time"].count)
+        if self.eval_interval >= 1:
+            total_eval_times = int((self.n_epochs - 0.5) // self.eval_interval + 2)
+        else:
+            total_eval_times = self.n_epochs * len(self.intra_epoch_eval_steps) + 1
+        left_eval_times = max(0, total_eval_times - self.training_stats["eval_time"].count)
         left_time_this_epoch = sec_to_hm(
             left_batch_this_epoch * self.training_stats["batch_time"].avg
         )
@@ -369,7 +400,7 @@ class LinearClassificationTrainer(Trainer):
         precision: str,
         use_wandb: bool,
         ckpt_interval: int,
-        eval_interval: int,
+        eval_interval: float,
         log_interval: int,
         best_metric_key: str,
         multi_label: bool = False,  # <-- Flag for multi-label classification, e.g., BigEarthNet dataset
@@ -390,7 +421,7 @@ class LinearClassificationTrainer(Trainer):
             precision (str): precision to train the model (fp32, fp16, bfp16).
             use_wandb (bool): whether to use wandb for logging.
             ckpt_interval (int): interval to save the checkpoint.
-            eval_interval (int): interval to evaluate the model.
+            eval_interval (float): interval to evaluate the model.
             log_interval (int): interval to log the training information.
             best_metric_key (str): metric that determines best checkpoints.
             multi_label (bool): Flag to enable multi-label classification.
@@ -547,7 +578,7 @@ class SegTrainer(Trainer):
         precision: str,
         use_wandb: bool,
         ckpt_interval: int,
-        eval_interval: int,
+        eval_interval: float,
         log_interval: int,
         best_metric_key: str,
     ):
@@ -565,7 +596,7 @@ class SegTrainer(Trainer):
             precision (str): precision to train the model (fp32, fp16, bfp16).
             use_wandb (bool): whether to use wandb for logging.
             ckpt_interval (int): interval to save the checkpoint.
-            eval_interval (int): interval to evaluate the model.
+            eval_interval (float): interval to evaluate the model.
             log_interval (int): interval to log the training information.
             best_metric_key (str): metric that determines best checkpoints.
         """
@@ -673,7 +704,7 @@ class RegTrainer(Trainer):
         precision: str,
         use_wandb: bool,
         ckpt_interval: int,
-        eval_interval: int,
+        eval_interval: float,
         log_interval: int,
         best_metric_key: str,
     ):
@@ -691,7 +722,7 @@ class RegTrainer(Trainer):
             precision (str): precision to train the model (fp32, fp16, bfp16).
             use_wandb (bool): whether to use wandb for logging.
             ckpt_interval (int): interval to save the checkpoint.
-            eval_interval (int): interval to evaluate the model.
+            eval_interval (float): interval to evaluate the model.
             log_interval (int): interval to log the training information.
             best_metric_key (str): metric that determines best checkpoints.
         """
@@ -729,6 +760,13 @@ class RegTrainer(Trainer):
         Returns:
             torch.Tensor: loss value.
         """
+
+        # sparse backprop
+        if self.train_loader.dataset.dataset_name in ["AGBDLite", "AGBD"]:
+            valid_mask = (target != self.train_loader.dataset.ignore_index)
+            logits = logits[valid_mask.unsqueeze(1)].unsqueeze(1)
+            target = target[valid_mask]
+
         return self.criterion(logits.squeeze(dim=1), target)
 
     @torch.no_grad()
@@ -741,6 +779,12 @@ class RegTrainer(Trainer):
             logits (torch.Tensor): logits from the decoder.
             target (torch.Tensor): target tensor.
         """
+
+        # sparse backprop
+        if self.train_loader.dataset.dataset_name in ["AGBDLite", "AGBD"]:
+            valid_mask = (target != self.train_loader.dataset.ignore_index)
+            logits = logits[valid_mask.unsqueeze(1)].unsqueeze(1)
+            target = target[valid_mask]
 
         mse = F.mse_loss(logits.squeeze(dim=1), target)  
         self.training_metrics["MSE"].update(mse.item())

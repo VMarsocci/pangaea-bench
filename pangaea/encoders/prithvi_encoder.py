@@ -116,6 +116,13 @@ class Prithvi_Encoder(Encoder):
 
     def load_encoder_weights(self, logger: Logger) -> None:
         pretrained_model = torch.load(self.encoder_weights, map_location="cpu", weights_only=False)
+        # The Prithvi checkpoint prefixes every key with "encoder."/"decoder.", but this
+        # model's own parameters are unprefixed, so the name comparison below matched
+        # nothing and load_state_dict(strict=False) silently left the whole encoder at its
+        # random initialisation (148/148 parameters missing). prithvi2_encoder.py and
+        # gfmswin_encoder.py already strip the prefix; this one did not. See upstream
+        # pangaea-bench: same bug on main and in 2.0.
+        pretrained_model = {key.replace("encoder.", ""): value for key, value in pretrained_model.items()}
         k = pretrained_model.keys()
         pretrained_encoder = {}
         incompatible_shape = {}
