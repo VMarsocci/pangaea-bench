@@ -16,6 +16,7 @@ from pangaea.datasets.utils import DownloadProgressBar
 
 import os
 import re
+import random
 
 
 def parse_rgbir_id(filename: str) -> str:
@@ -295,26 +296,84 @@ class PotsdamIRDEM(RawGeoFMDataset):
         label_train_map = build_file_map(label_train_dir, ".tif", parse_label_id)
 
         train_numbers = sorted(label_train_map.keys())
-        val_numbers = sorted([k for k in label_all_map.keys() if k not in train_numbers])
+        # Tiles with labels that are not part of the original participant
+        # training set form the held-out pool.
+        heldout_numbers = sorted(
+            k for k in label_all_map.keys()
+            if k not in train_numbers
+        )
 
-        missing_train_rgbir = [k for k in train_numbers if k not in rgbir_map]
-        missing_train_dsm = [k for k in train_numbers if k not in dsm_map]
-        missing_train_label = [k for k in train_numbers if k not in label_all_map]
+        if len(heldout_numbers) < 2:
+            raise RuntimeError(
+                "At least two held-out source tiles are required to create "
+                "separate validation and test splits. "
+                f"Found {len(heldout_numbers)}."
+            )
 
-        if missing_train_rgbir:
-            raise FileNotFoundError(f"Missing RGBIR files for training tiles, e.g. {missing_train_rgbir[:5]}")
-        if missing_train_dsm:
-            raise FileNotFoundError(f"Missing DSM files for training tiles, e.g. {missing_train_dsm[:5]}")
-        if missing_train_label:
-            raise FileNotFoundError(f"Missing label files for training tiles, e.g. {missing_train_label[:5]}")
+        # Divide the held-out source tiles into validation and test sets.
+        # The seed makes the split reproducible.
+        split_rng = random.Random(42)
+        split_rng.shuffle(heldout_numbers)
+
+        split_index = len(heldout_numbers) // 2
+        val_numbers = sorted(heldout_numbers[:split_index])
+        test_numbers = sorted(heldout_numbers[split_index:])
+
+        print(
+            "Source-tile split: "
+            f"{len(train_numbers)} train, "
+            f"{len(val_numbers)} validation, "
+            f"{len(test_numbers)} test."
+        )
+        print(f"Validation tile IDs: {val_numbers}")
+        print(f"Test tile IDs: {test_numbers}")
+
+        # Validate every source tile before beginning the expensive tiling step.
+        split_numbers = {
+            "training": train_numbers,
+            "validation": val_numbers,
+            "test": test_numbers,
+        }
 
         # Create consistent directory structure
-        for split_name in ["train", "val", "test"]:
-            os.makedirs(os.path.join(out_dir, split_name, "optical"), exist_ok=True)
-            os.makedirs(os.path.join(out_dir, split_name, "dem"), exist_ok=True)
-            os.makedirs(os.path.join(out_dir, split_name, "labels"), exist_ok=True)
+        for split_name, numbers in split_numbers.items():
+            missing_rgbir = [k for k in numbers if k not in rgbir_map]
+            missing_dsm = [k for k in numbers if k not in dsm_map]
+            missing_labels = [k for k in numbers if k not in label_all_map]
 
-        print("Tiling train images...")
+            if missing_rgbir:
+                raise FileNotFoundError(
+                    f"Missing RGBIR files for {split_name} tiles, "
+                    f"e.g. {missing_rgbir[:5]}"
+                )
+
+            if missing_dsm:
+                raise FileNotFoundError(
+                    f"Missing DSM files for {split_name} tiles, "
+                    f"e.g. {missing_dsm[:5]}"
+                )
+
+            if missing_labels:
+                raise FileNotFoundError(
+                    f"Missing label files for {split_name} tiles, "
+                    f"e.g. {missing_labels[:5]}"
+                )
+            
+        for split_name in ["train", "val", "test"]:
+            os.makedirs(
+                os.path.join(out_dir, split_name, "optical"),
+                exist_ok=True,
+            )
+            os.makedirs(
+                os.path.join(out_dir, split_name, "dem"),
+                exist_ok=True,
+            )
+            os.makedirs(
+                os.path.join(out_dir, split_name, "labels"),
+                exist_ok=True,
+            )    
+
+        print("Tiling training images...")
         tile_and_save_split(
             numbers=train_numbers,
             rgbir_map=rgbir_map,
@@ -322,10 +381,11 @@ class PotsdamIRDEM(RawGeoFMDataset):
             label_map=label_all_map,
             out_dir=out_dir,
             save_folder="train",
-            tile_size=512,
+            tile_size=256,
             overlap=0,
         )
 
+        print("Tiling validation images...")
         tile_and_save_split(
             numbers=val_numbers,
             rgbir_map=rgbir_map,
@@ -333,7 +393,19 @@ class PotsdamIRDEM(RawGeoFMDataset):
             label_map=label_all_map,
             out_dir=out_dir,
             save_folder="val",
-            tile_size=512,
+            tile_size=256,
+            overlap=0,
+        )
+
+        print("Tiling test images...")
+        tile_and_save_split(
+            numbers=test_numbers,
+            rgbir_map=rgbir_map,
+            dsm_map=dsm_map,
+            label_map=label_all_map,
+            out_dir=out_dir,
+            save_folder="test",
+            tile_size=256,
             overlap=0,
         )
 
