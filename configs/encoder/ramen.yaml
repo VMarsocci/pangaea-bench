@@ -1,0 +1,47 @@
+# Change to pangaea.encoders.ramen_encoder.RAMEN_Encoder_MonoTemporal for independent monotemporal processing of each timesteps
+_target_: pangaea.encoders.ramen_encoder.RAMEN_Encoder 
+encoder_weights: ./pretrained_models/ramen_base_99.ckpt
+download_url: https://huggingface.co/nicolashoudre/RAMEN/resolve/main/ramen_base_99.ckpt
+
+embed_dim: 768
+input_size: ${dataset.img_size}
+depth: 12
+num_heads: 12
+mlp_ratio: 4
+
+input_bands: ${dataset.bands}
+
+# The input resolution (ground sampling distance) of the input image. For example, Sentinel-2 images have a resolution of 10.0 meters.
+# As to be changed accordingly to the task
+input_res: 10.0
+
+# The output resolution (ground sampling distance) of the embedding.
+# Tunable according to the task and computational resources.
+output_res: 40.0
+
+wavelengths:
+  optical:
+    B1: 440.0
+    B2: 490.0
+    B3: 560.0
+    B4: 665.0
+    B5: 705.0
+    B6: 740.0
+    B7: 783.0
+    B8: 832.0
+    B8A: 865.0
+    B9: 945.0
+    B10: 1373.0
+    B11: 1610.0
+    B12: 2200.0
+  sar:
+    VV: 'asc_vv'
+    VH: 'asc_vh'
+  
+output_layers:
+  - 3
+  - 5
+  - 7
+  - 11
+
+output_dim: 768
