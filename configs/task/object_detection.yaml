@@ -24,7 +24,8 @@ evaluator:
   val_loader: null
   exp_dir: null
   device: null
-  inference_mode: whole
+  inference_mode: sliding
+  nms_threshold: 0.5
   use_wandb: ${use_wandb}
   wandb_offline: ${wandb_offline}
   wandb_offline_sync_communication_dir: ${wandb_offline_sync_communication_dir}
