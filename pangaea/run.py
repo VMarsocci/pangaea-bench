@@ -20,7 +20,7 @@ from pangaea.decoders.base import Decoder
 from pangaea.encoders.base import Encoder
 from pangaea.engine.evaluator import Evaluator
 from pangaea.engine.trainer import Trainer
-from pangaea.utils.collate_fn import get_collate_fn
+from pangaea.utils.collate_fn import get_collate_fn, get_det_collate_fn
 from pangaea.utils.logger import init_logger
 from pangaea.utils.subset_sampler import get_subset_indices
 from pangaea.utils.utils import (
@@ -200,7 +200,11 @@ def main(cfg: DictConfig) -> None:
     )
 
     modalities = list(encoder.input_bands.keys())
-    collate_fn = get_collate_fn(modalities)
+    collate_kind = OmegaConf.select(cfg, "task.collate_fn") or "default"
+    if collate_kind == "detection":
+        collate_fn = get_det_collate_fn(modalities)
+    else:
+        collate_fn = get_collate_fn(modalities)
 
     # training
     if train_run or cfg.task.trainer.model == "knn_probe":
@@ -221,6 +225,8 @@ def main(cfg: DictConfig) -> None:
         # get datasets
         raw_train_dataset: RawGeoFMDataset = instantiate(cfg.dataset, split="train")
         raw_val_dataset: RawGeoFMDataset = instantiate(cfg.dataset, split="val")
+        n_train_full = len(raw_train_dataset)
+        n_val_full = len(raw_val_dataset)
 
         if 0 < cfg.limited_label_train < 1:
             indices = get_subset_indices(
@@ -256,6 +262,12 @@ def main(cfg: DictConfig) -> None:
         logger.info(
             f"Total number of train patches: {len(train_dataset)}\n"
             f"Total number of validation patches: {len(val_dataset)}\n"
+        )
+        logger.info(
+            f"[samples] split=train used={len(raw_train_dataset)} full={n_train_full}"
+        )
+        logger.info(
+            f"[samples] split=val used={len(raw_val_dataset)} full={n_val_full}"
         )
 
         # get train val data loaders

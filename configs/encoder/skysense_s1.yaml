@@ -1,0 +1,20 @@
+_target_: pangaea.encoders.skysense_encoder.SkySenseS1
+
+# https://www.notion.so/SkySense-Checkpoints-a7fcff6ce29a4647a08c7fe416910509
+encoder_weights: ./pretrained_models/skysense_backbone_s1.pth
+download_url: ~
+
+input_size: 64
+
+input_bands:
+  sar:
+    - VV
+    - VH
+
+output_layers:
+  - 5
+  - 11
+  - 17
+  - 23
+
+output_dim: 1024

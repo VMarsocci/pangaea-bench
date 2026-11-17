@@ -7,6 +7,23 @@ from google.cloud.storage import Client
 import zipfile
 
 
+_VSI_PREFIX = "/vsisubfile/"
+
+
+def read_tortilla_subfile_bytes(vsi_path: str) -> bytes:
+    """Read bytes from a tortilla `/vsisubfile/<offset>_<size>,<path>` reference."""
+    ref = vsi_path[len(_VSI_PREFIX):] if vsi_path.startswith(_VSI_PREFIX) else vsi_path
+    head, sep, path = ref.partition(",")
+    if not sep:
+        raise ValueError(f"Subfile reference missing ',' delimiter: {vsi_path!r}")
+    offset_str, sep, size_str = head.partition("_")
+    if not sep or not offset_str.isdigit() or not size_str.isdigit():
+        raise ValueError(f"Subfile reference has malformed offset_size: {vsi_path!r}")
+    with open(path, "rb") as f:
+        f.seek(int(offset_str))
+        return f.read(int(size_str))
+
+
 # Utility progress bar handler for urlretrieve
 class DownloadProgressBar:
     def __init__(self):

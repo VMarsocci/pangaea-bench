@@ -1,0 +1,18 @@
+_target_: pangaea.decoders.det_faster_rcnn.DetFasterRCNN
+
+encoder: null
+num_classes: ${dataset.num_classes}
+finetune: ${finetune}
+
+fpn_out_channels: 256
+anchor_sizes:
+  - [32]
+  - [64]
+  - [128]
+  - [256]
+  - [512]
+anchor_aspect_ratios: [0.5, 1.0, 2.0]
+roi_output_size: 7
+score_threshold: 0.05
+nms_threshold: 0.5
+detections_per_image: 100
