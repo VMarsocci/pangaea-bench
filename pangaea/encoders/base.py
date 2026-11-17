@@ -172,8 +172,9 @@ class Encoder(nn.Module):
     def download_model(self) -> None:
         """Download the model if the weights are not already downloaded."""
         if self.download_url and not os.path.isfile(self.encoder_weights):
-            # TODO: change this path
-            os.makedirs("pretrained_models", exist_ok=True)
+            os.makedirs(
+                os.path.dirname(self.encoder_weights) or ".", exist_ok=True
+            )
 
             pbar = DownloadProgressBar(f"Downloading {self.encoder_weights}")
 
