@@ -35,28 +35,11 @@
 
 
 📢 **News**
+ - [11/2026] **PANGAEA 2.0**: new encoders (TerraMind, THOR, Prithvi-EO-2.0, SkySense variants, Clay, Galileo, AnySat, MMEarth, DINOv3 and generic timm backbones), new datasets (FLAIR-2, SpaceNet 2/3, PureForest, HOT Buildings, EverWatch, NZ-Cattle, AGBD-Lite, regional Sen1Floods11 splits), a new [object detection](#object-detection) task, [cross-testing](#-cross-testing-on-a-different-dataset), automatic dataset downloads and a [uv-based setup](#️-setup).
  - [04/06/2025] We integrate [Geo-Bench](https://arxiv.org/abs/2306.03831) Datasets, including six segmentation and six classification tasks.
  <!-- - [23/04/2025] we pushed a new version of the code, fixing different bugs (e.g. commands are working for all the datasets now, metric computation with ignore_index is fixed, etc...). In the next month, we will provide: all downloadable datasets and models, downloadable stratified subsamples for all the datasets, classification. Stay tuned! -->
- - [22/04/2025] on EarthDay, PANGAEA was officialy adopted to benchmark TerraMind. Read the [news](https://www.linkedin.com/posts/simonetta-cheli-7669879b_earthday-earthobservation-activity-7320439907028467712-LSzl?utm_source=share&utm_medium=member_desktop&rcm=ACoAACdT8q0BDNWYKAdDYGUe_X4fQOzSHO8jgAs) and the [pre-print](https://arxiv.org/abs/2504.11171). We will release the benchmarking code in PANGAEA very soon!
+ - [22/04/2025] on EarthDay, PANGAEA was officialy adopted to benchmark TerraMind. Read the [news](https://www.linkedin.com/posts/simonetta-cheli-7669879b_earthday-earthobservation-activity-7320439907028467712-LSzl?utm_source=share&utm_medium=member_desktop&rcm=ACoAACdT8q0BDNWYKAdDYGUe_X4fQOzSHO8jgAs) and the [pre-print](https://arxiv.org/abs/2504.11171). The TerraMind benchmarking code is now included in PANGAEA.
  - [05/12/2024] the [pre-print](https://arxiv.org/abs/2412.04204) is out!
-
-## 🆕 Local updates in this fork (March 2026)
-
-This repository includes additional local extensions for experimentation:
-
-- **New encoder configs**
-   - THOR encoder: `configs/encoder/thor.yaml`
-   - Prithvi-2 variants: `configs/encoder/prithvi2_100m.yaml`, `configs/encoder/prithvi2_300m.yaml`, `configs/encoder/prithvi2_600m.yaml`
-   - Skysense variants: `configs/encoder/skysense_s2.yaml`, `configs/encoder/skysense_s2s1.yaml`, `configs/encoder/skysense_vhr.yaml`
-
-- **New LAI dataset integration**
-   - Dataset class: `pangaea/datasets/lai.py`
-   - Dataset configs: all `configs/dataset/lai*.yaml` variants (single/dual S1-S2 and site-specific configs)
-
-- **Cross-testing support**
-   - Wrapper CLI: `cross_test.py`
-   - Test-time cross-dataset override support in `pangaea/run.py` and `configs/test.yaml`
-   - New test overrides: `cross_test_dataset`, `cross_test_root_path`, `cross_test_preprocessing`, `test_log_name`
 
 ## 📚 Introduction
 
@@ -84,6 +67,17 @@ For the moment, we support the following **models**:
 |  [Prithvi](https://arxiv.org/pdf/2310.18660)    | Foundation Models for Generalist Geospatial Artificial Intelligence      | [link](https://github.com/NASA-IMPACT/hls-foundation-os) | MAE, Multi-temporal |
 |  [RemoteCLIP](https://arxiv.org/pdf/2306.11029) | RemoteCLIP: A Vision Language Foundation Model for Remote Sensing    | [link](https://github.com/ChenDelong1999/RemoteCLIP) | Contrastive Learning |
 |  [SkySense](https://arxiv.org/abs/2312.10115)   | Skysense: A Multi-Modal Remote Sensing Foundation Model Towards Universal Interpretation for Earth Observation Imagery      | [link](https://github.com/Jack-bo1220/SkySense#abstract) | Contrastive Learning, Multi-modal |
+|  [TerraMind](https://arxiv.org/abs/2504.11171)  | TerraMind: Large-Scale Generative Multimodality for Earth Observation | [link](https://huggingface.co/ibm-esa-geospatial/TerraMind-1.0-base) | Any-to-any generative, Multi-modal |
+|  THOR                                           | THOR foundation model (FM4CS) | [link](https://huggingface.co/FM4CS/THOR-1.0-base) | ViT, Multi-sensor |
+|  [Prithvi-EO-2.0](https://arxiv.org/abs/2412.02732) | Prithvi-EO-2.0: A Versatile Multi-Temporal Foundation Model for Earth Observation Applications | [link](https://huggingface.co/ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL) | MAE, Multi-temporal |
+|  Clay v1.5                                      | Clay Foundation Model | [link](https://huggingface.co/made-with-clay/Clay) | MAE, Sensor-agnostic |
+|  [Galileo](https://arxiv.org/abs/2502.09356)    | Galileo: Learning Global & Local Features of Many Remote Sensing Modalities | [link](https://huggingface.co/nasaharvest/galileo) | Masked modeling, Multi-modal |
+|  [AnySat](https://arxiv.org/abs/2412.14123)     | AnySat: One Earth Observation Model for Many Resolutions, Scales, and Modalities | [link](https://huggingface.co/g-astruc/AnySat) | JEPA, Multi-resolution |
+|  [MMEarth](https://arxiv.org/abs/2405.02771)    | MMEarth: Exploring Multi-Modal Pretext Tasks For Geospatial Representation Learning | [link](https://github.com/vishalned/MMEarth-train) | ConvNeXt V2, Multi-modal pretext |
+|  [DINOv3](https://arxiv.org/abs/2508.10104)     | DINOv3 | [link](https://github.com/facebookresearch/dinov3) | Self-distillation, ViT/ConvNeXt (incl. satellite weights) |
+|  timm backbones                                 | Generic [timm](https://github.com/huggingface/pytorch-image-models) encoders (e.g. ConvNeXt, ResNet-50) | [link](https://github.com/huggingface/pytorch-image-models) | Supervised ImageNet baselines |
+
+Encoder configs are in `configs/encoder/`, e.g. `terramind_tiny`, `terramind_base`, `terramind_large` (+ `*_optical`), `thor`, `prithvi2_100m/300m/600m`, `skysense_s1/s2/s2s1/vhr`, `clay_v1_5`, `galileo`, `anysat`, `mmearth` (+ `mmearth_optical`), `dinov3_vits16/vitb16/vitl16/vitl16_sat`, `dinov3_convnext_small/base/large`, `convnext_xlarge_in22k_ft_in1k`, `resnet50_a1_in1k`.
 
 
 And the following **datasets**:
@@ -107,6 +101,10 @@ And the following **datasets**:
 - **Open-Canopy** [[Link](https://arxiv.org/abs/2407.09392)]. Contributed by [@pierreadorni](https://github.com/pierreadorni).
 - **Geo-Bench datasets** [[Link](https://github.com/ServiceNow/geo-bench)]. Contributed by [@yurujaja](https://github.com/yurujaja).
 - **AGBD-Lite dataset** [[Link](https://huggingface.co/datasets/prs-eth/AGBD-Lite)]. Contributed by [@ghjuliasialelli](https://github.com/ghjuliasialelli).
+- **FLAIR-2, SpaceNet 2, EverWatch, NZ-Cattle (GEO-Bench-2 VHR), SpaceNet 3 (roads), PureForest, HOT Buildings** [[Link](https://huggingface.co/datasets/kshitijrajsharma/geobench2-vhr)]. Contributed by [@kshitijrajsharma](https://github.com/kshitijrajsharma).
+- **Sen1Floods11 regional splits** (`sen1floods11_euramerica`, `sen1floods11_africa`, `sen1floods11_asia`) for cross-region testing. Contributed by [@pierreadorni](https://github.com/pierreadorni).
+
+See the [Dataset Guide](DATASET_GUIDE.md) for details and example commands for each dataset.
 
 The repository supports the following **tasks** using geospatial (foundation) models:
  - [Single Temporal Semantic Segmentation](#single-temporal-semantic-segmentation)
@@ -116,19 +114,22 @@ The repository supports the following **tasks** using geospatial (foundation) mo
  - [Multi-Temporal Regression](#multi-temporal-regression)
  - [Linear Classification](#linear-classification)
  - [KNN Probe Classification](#knn-probe-classification)
+ - [Object Detection](#object-detection)
 
 It is also possible to train some [supervised baselines](#-fully-supervised-baseline), based on UNet and ViT.
 
 ## 🗺️ Datasets details
 Please refer to [**Dataset Guide**](DATASET_GUIDE.md) to understand the processing requirements and commands specific to each dataset.
 
+Most dataset configs set `auto_download: True`: the data is downloaded to `dataset.root_path` the first time it is used (most new datasets are hosted on Hugging Face). To use an existing local copy, override `dataset.root_path=/path/to/data`.
+
 If you want to fast-prototype your model, maybe you want to run fast experiments on smaller datasets. We suggest starting with MADOS, HLSBurnScars, SpaceNet7 and Sen1Floods11 and AI4SmallFarms. They offer good diversity in satellites and domains. In the future, we will release stratified subsets for each dataset to facilitate fast prototyping across all datasets.
 
 ## 🛠️ Setup
 Clone the repository:
 ```
-git clone https://github.com/VMarsocci/pangaea2.0-bench.git
-cd pangaea-bench2.0
+git clone https://github.com/VMarsocci/pangaea-bench.git
+cd pangaea-bench
 ```
 
 **Dependencies**
@@ -412,6 +413,23 @@ Note that for KNN probe:
 - The batch size can be larger since we're only doing inference
 - `finetune` is set to `false` as we're only using the pre-trained encoder
 
+#### Object Detection
+
+Object detection uses a Faster R-CNN head on top of the encoder (`decoder=det_faster_rcnn`), with dedicated preprocessing and task configs. The loss is computed inside the detection head, so `criterion=none`. Evaluation reports mAP. Example on EverWatch (bird detection):
+
+```
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=everwatch \
+   encoder=resnet50_pretrained \
+   decoder=det_faster_rcnn \
+   preprocessing=det_default \
+   criterion=none \
+   task=object_detection
+```
+
+Supported detection datasets: `everwatch`, `nzcattle_det`.
+
 
 ### 💻 End-to-end Finetuning
 
@@ -560,7 +578,7 @@ torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py --config-name=train \
 # testing on africa
 torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py --config-name=test \
     ckpt_dir=work-dir/20260324_142305_0589a0_terramind_tiny_seg_upernet_sen1floods11_euramerica \
-    cross_test_dataset=sen1floods11_africa \
+    dataset=sen1floods11_africa \
     save_visualizations=true
 ```
 
