@@ -1,6 +1,6 @@
 _target_: pangaea.datasets.pastis.Pastis
 dataset_name: Pastis
-root_path: /share/DEEPLEARNING/datasets/PASTIS-HD/
+root_path: ./data/PASTIS-HD/
 download_url: null
 auto_download: False
 
