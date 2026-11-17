@@ -29,6 +29,8 @@ This document provides a detailed overview of the datasets used in this reposito
   - [Semantic Segmentation (e.g., m-NZ-Cattle, m-SA-Crop-Type)](#for-semantic-segmentation-ie-m-cashew-plantation-m-chesapeake-landcover-m-neontree-m-nz-cattle-m-pv4ger-seg-and-m-sa-crop-type)
   - [SpaceNet 3 (roads)](#spacenet-3-roads-native)
   - [PureForest](#pureforest)
+- [EverWatch (GEO-Bench-2)](#everwatch-geo-bench-2)
+- [NZ-Cattle Detection (GEO-Bench-2)](#nz-cattle-detection-geo-bench-2)
 
 ---
 
@@ -445,4 +447,34 @@ Note that `export GEO_BENCH_DIR=YOUR/PATH/DIR` is required.
    criterion=cross_entropy \
    task=linear_classification \
    finetune=false
+  ```
+
+### EverWatch (GEO-Bench-2)
+
+- Bird-species object detection (9 classes) over Everglades VHR aerial RGB. Auto-downloads `geobench_everwatch.tortilla` from [`kshitijrajsharma/geobench2-vhr`](https://huggingface.co/datasets/kshitijrajsharma/geobench2-vhr).
+
+  ```
+   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=everwatch \
+   encoder=resnet50_pretrained \
+   decoder=det_faster_rcnn \
+   preprocessing=det_default \
+   criterion=none \
+   task=object_detection
+  ```
+
+### NZ-Cattle Detection (GEO-Bench-2)
+
+- Binary cattle object detection over New Zealand VHR aerial RGB. Auto-downloads `geobench_nzcattle.tortilla` from [`kshitijrajsharma/geobench2-vhr`](https://huggingface.co/datasets/kshitijrajsharma/geobench2-vhr).
+
+  ```
+   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=nzcattle_det \
+   encoder=resnet50_pretrained \
+   decoder=det_faster_rcnn \
+   preprocessing=det_default \
+   criterion=none \
+   task=object_detection
   ```

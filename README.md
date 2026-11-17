@@ -47,6 +47,7 @@ This repository includes additional local extensions for experimentation:
 - **New encoder configs**
    - THOR encoder: `configs/encoder/thor.yaml`
    - Prithvi-2 variants: `configs/encoder/prithvi2_100m.yaml`, `configs/encoder/prithvi2_300m.yaml`, `configs/encoder/prithvi2_600m.yaml`
+   - Skysense variants: `configs/encoder/skysense_s2.yaml`, `configs/encoder/skysense_s2s1.yaml`, `configs/encoder/skysense_vhr.yaml`
 
 - **New LAI dataset integration**
    - Dataset class: `pangaea/datasets/lai.py`
@@ -82,6 +83,7 @@ For the moment, we support the following **models**:
 |  [CROMA](https://arxiv.org/pdf/2311.00566)      | CROMA: Remote Sensing Representations with Contrastive Radar-Optical Masked Autoencoders  | [link](https://github.com/antofuller/CROMA) | Contrastive Learning, MAE |
 |  [Prithvi](https://arxiv.org/pdf/2310.18660)    | Foundation Models for Generalist Geospatial Artificial Intelligence      | [link](https://github.com/NASA-IMPACT/hls-foundation-os) | MAE, Multi-temporal |
 |  [RemoteCLIP](https://arxiv.org/pdf/2306.11029) | RemoteCLIP: A Vision Language Foundation Model for Remote Sensing    | [link](https://github.com/ChenDelong1999/RemoteCLIP) | Contrastive Learning |
+|  [SkySense](https://arxiv.org/abs/2312.10115)   | Skysense: A Multi-Modal Remote Sensing Foundation Model Towards Universal Interpretation for Earth Observation Imagery      | [link](https://github.com/Jack-bo1220/SkySense#abstract) | Contrastive Learning, Multi-modal |
 
 
 And the following **datasets**:
@@ -124,8 +126,8 @@ If you want to fast-prototype your model, maybe you want to run fast experiments
 ## 🛠️ Setup
 Clone the repository:
 ```
-git clone https://github.com/VMarsocci/pangaea-bench.git
-cd pangaea-bench
+git clone https://github.com/VMarsocci/pangaea2.0-bench.git
+cd pangaea-bench2.0
 ```
 
 **Dependencies**

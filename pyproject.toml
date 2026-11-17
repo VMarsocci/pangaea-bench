@@ -49,6 +49,7 @@ dependencies = [
     "tifffile>=2026.3.3",
     "timm>=1.0.26",
     "torch>=2.1.0",
+    "torchmetrics[detection]>=1.0",
     "torchvision>=0.16.0",
     "tqdm>=4.67.3",
     "wandb>=0.26.1",
