@@ -1,18 +1,17 @@
-import numpy as np
-import torch
+import io
 import os
-from pathlib import Path
+import urllib.request
+
+import numpy as np
+import tacoreader.v1 as tacoreader
+import torch
+from PIL import Image
+
 from pangaea.datasets.base import RawGeoFMDataset
-from pangaea.datasets.utils import decompress_zip_with_progress
-from huggingface_hub import HfApi, hf_hub_download
-import subprocess
-import sys
-try:
-    import geobench
-except ImportError:
-    print("geobench not found. Installing via pip...")
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "--no-deps", "geobench"])
-    import geobench
+from pangaea.datasets.utils import read_tortilla_subfile_bytes
+
+_TORTILLA_FILE = "geobench_mpv4ger.tortilla"
+_RGB_BAND_INDEX = {"B4": 0, "B3": 1, "B2": 2}
 
 
 class mPv4ger(RawGeoFMDataset):
@@ -99,67 +98,30 @@ class mPv4ger(RawGeoFMDataset):
 
         self.root_path = root_path
         self.split = split
-        
-        split_mapping = {'train': 'train', 'val': 'valid', 'test': 'test'}
-        
-        task = geobench.load_task_specs(self.root_path)
-        self.dataset = task.get_dataset(split=split_mapping[self.split])
+
+        df = tacoreader.load(os.path.join(self.root_path, _TORTILLA_FILE))
+        self.dataset = df[df["tortilla:data_split"] == self.split].reset_index(
+            drop=True
+        )
+        self._labels = [int(v) for v in self.dataset["label"]]
+        self._band_indices = [_RGB_BAND_INDEX[b] for b in bands["optical"]]
 
     def __len__(self):
         return len(self.dataset)
 
     def __getitem__(self, index):
-        sample = self.dataset[index]
-
-        all_band_names = ("Blue", "Green", "Red")
-        rgb_bands = ("Red", "Green", "Blue")
-        BAND_SETS = {"all": all_band_names, "rgb": rgb_bands}
-        image, band_names = sample.pack_to_3d(band_names=BAND_SETS["rgb"])
-        label = sample.label
-        filename = sample.sample_name
-        
-        image = torch.from_numpy(image.transpose(2, 0, 1)).float() 
-
-        image=image.unsqueeze(1)
-
+        vsi_path = self.dataset.read(index)
+        png = read_tortilla_subfile_bytes(vsi_path)
+        arr = np.array(Image.open(io.BytesIO(png)), dtype=np.float32)
+        image = torch.from_numpy(arr).permute(2, 0, 1)[self._band_indices].unsqueeze(1)
         return {
-            "image": {
-                "optical": image,
-            },
-            "target": torch.tensor(label, dtype=torch.int64),
-            "metadata": {
-                "filename": filename},
+            "image": {"optical": image},
+            "target": torch.tensor(self._labels[index], dtype=torch.int64),
+            "metadata": {},
         }
-        
+
     def download(self, silent=False):
-        local_directory = Path(os.getenv("GEO_BENCH_DIR"))
-        dataset_repo = self.download_url
-
-        local_directory.mkdir(parents=True, exist_ok=True)
-
-        api = HfApi()
-        dataset_files = api.list_repo_files(repo_id=dataset_repo, repo_type="dataset")
-
-        for file in dataset_files:
-
-            if file not in ['classification_v1.0/m-pv4ger.zip', 'classification_v1.0/normalizer.json']:
-                continue
-
-            local_file_path = local_directory / file
-
-            local_file_path.parent.mkdir(parents=True, exist_ok=True)
-
-            print(f"Downloading {file}...")
-            hf_hub_download(
-                repo_id=dataset_repo,
-                filename=file,
-                cache_dir=local_directory,
-                local_dir=local_directory,
-                repo_type="dataset",
-            )
-            if file.endswith(".zip"):
-                print(f"Decompressing ...")
-                decompress_zip_with_progress(local_directory / file)
-
-    
-    
+        os.makedirs(self.root_path, exist_ok=True)
+        urllib.request.urlretrieve(
+            self.download_url, os.path.join(self.root_path, _TORTILLA_FILE)
+        )

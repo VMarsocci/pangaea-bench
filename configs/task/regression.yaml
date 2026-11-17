@@ -18,6 +18,8 @@ trainer:
   log_interval: 5
   best_metric_key: MSE
   use_wandb: ${use_wandb}
+  wandb_offline: ${wandb_offline}
+  wandb_offline_sync_communication_dir: ${wandb_offline_sync_communication_dir}
 
 evaluator:
   _target_: pangaea.engine.evaluator.RegEvaluator
@@ -26,5 +28,14 @@ evaluator:
   exp_dir: null
   device: null
   use_wandb: ${use_wandb}
+  wandb_offline: ${wandb_offline}
+  wandb_offline_sync_communication_dir: ${wandb_offline_sync_communication_dir}
   inference_mode: sliding
+  # visualization — overridden at test time via test.yaml or CLI
+  save_predictions: false
+  save_visualizations: false
+  save_output_dir: null
+  max_samples_to_visualize: -1
+  overwrite: true
+  rgb_bands: [2, 1, 0]
   sliding_inference_batch: 8

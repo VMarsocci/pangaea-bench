@@ -8,6 +8,7 @@ import os
 
 import numpy as np
 import rasterio
+import rasterio.windows
 import torch
 
 from pangaea.datasets.base import RawGeoFMDataset
@@ -83,14 +84,14 @@ class OpenCanopy(RawGeoFMDataset):
         )
 
         assert split in ["train", "val", "test"], "Split must be train, val or test"
-        with open("data/canopy_height/geometries.geojson", "r") as f:
+        with open(os.path.join(self.root_path, "canopy_height", "geometries.geojson"), "r") as f:
             self.metadata = json.load(f)
 
         # delete all geometries that are not in the split
         self.metadata["features"] = [
             feature for feature in self.metadata["features"] if feature["properties"]["split"] == split
         ]
-    
+
 
     def __getitem__(self, i: int) -> dict[str, torch.Tensor | dict[str, torch.Tensor]]:
         """Get the item at index i.
@@ -110,8 +111,8 @@ class OpenCanopy(RawGeoFMDataset):
         tile = self.metadata["features"][i]
         filename = tile["properties"]["image_name"]
         year = filename.split("_")[-1][:4]
-        spot_folder = f"data/canopy_height/{year}/spot/"
-        lidar_folder = f"data/canopy_height/{year}/lidar/"
+        spot_folder = os.path.join(self.root_path, "canopy_height", year, "spot")
+        lidar_folder = os.path.join(self.root_path, "canopy_height", year, "lidar")
         spot_path = os.path.join(spot_folder, filename)
         lidar_path = os.path.join(lidar_folder, "compressed_lidar_" + filename.split("_")[-1])
 
@@ -123,16 +124,16 @@ class OpenCanopy(RawGeoFMDataset):
                 transform=src.transform
             )
             rgbir = torch.Tensor(src.read(window=window))
-        
+
         with rasterio.open(lidar_path) as src:
             canopy_height = torch.Tensor(src.read(1, window=window))
-        
+
         return {
             "image": {
                 "optical": rgbir.to(torch.float).unsqueeze(1),
             },
             "target": canopy_height.to(torch.float),
-            "metadata": {},
+            "metadata": {"filename": filename},
         }
 
     def __len__(self) -> int:
@@ -146,8 +147,9 @@ class OpenCanopy(RawGeoFMDataset):
     @staticmethod
     def download(self):
         from huggingface_hub import snapshot_download
+        os.makedirs(self.root_path, exist_ok=True)
         snapshot_download(
-            repo_id="AI4Forest/Open-Canopy",
+            repo_id=self.download_url,
             repo_type="dataset",
-            local_dir="data",
+            local_dir=self.root_path,
         )

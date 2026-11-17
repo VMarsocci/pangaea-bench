@@ -1,5 +1,5 @@
 _target_: pangaea.encoders.spectralgpt_encoder.SpectralGPT_Encoder
-encoder_weights: ./pretrained_models/SpectralGPT+.pth
+encoder_weights: ./pretrained_models/SpectralGPT/SpectralGPT+.pth
 download_url: https://zenodo.org/records/8412455/files/SpectralGPT+.pth
 
 input_size: 128

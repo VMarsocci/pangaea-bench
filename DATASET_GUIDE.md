@@ -20,10 +20,17 @@ This document provides a detailed overview of the datasets used in this reposito
 ### 🧪 Community-Contributed Datasets
 - [Potsdam](#potsdam)
 - [Open-Canopy](#open-canopy)
+- [FLAIR-2 (GEO-Bench-2)](#flair-2-geo-bench-2)
+- [SpaceNet 2 (GEO-Bench-2)](#spacenet-2-geo-bench-2)
+- [HOT Buildings](#hot-buildings)
 - [Geo-Bench Datasets](#geo-bench-datasets)
   - [Multi-label Classification (e.g., m-BigEarthNet)](#for-multi-label-classification-eg-m-bigearthnet)
   - [Single-label Classification (e.g., m-EuroSat, m-Brick-Kiln)](#for-single-label-classification-ie-m-eurosat-m-brick-kiln-m-forestnet-m-pv4ger-m-so2sat)
   - [Semantic Segmentation (e.g., m-NZ-Cattle, m-SA-Crop-Type)](#for-semantic-segmentation-ie-m-cashew-plantation-m-chesapeake-landcover-m-neontree-m-nz-cattle-m-pv4ger-seg-and-m-sa-crop-type)
+  - [SpaceNet 3 (roads)](#spacenet-3-roads-native)
+  - [PureForest](#pureforest)
+- [EverWatch (GEO-Bench-2)](#everwatch-geo-bench-2)
+- [NZ-Cattle Detection (GEO-Bench-2)](#nz-cattle-detection-geo-bench-2)
 
 ---
 
@@ -99,12 +106,9 @@ This document provides a detailed overview of the datasets used in this reposito
   
 ### xView2
 
-- The dataset needs to be downloaded manually from the official website. This requires a registration and accepting the terms and conditions. On the download page, we need the datasets under `Datasets from the Challenge`, excluding the holdout set. Extract the datasets in the `./data/xView2/` folder, such that it contains e.g. `./data/xView2/tier3/images/...`.
-- The `tier3` set does not come up labels in the form of images, so we first need to create them from the respective JSON data. We create a `masks` folder on the level of the `images` folder by running:
-
-  ```
-   python datasets/xView2_create_masks.py
-   ```
+- Two download paths are supported, selected by the `download_url` field in `configs/dataset/xview2.yaml`:
+  - **HF auto-download (default)**: set `download_url` to the HF dataset repo ID (e.g. `kshitijrajsharma/pangaea2-vhr`, pinned to revision `49dfe4f…`). Parquet shards are fetched and written to disk in the legacy layout (`<root>/{train,test,tier3}/{images,masks}/<id>_{pre,post}_disaster.png`). The mirror stores raw bytes of each PNG, so the materialized files are bit-identical to the xview2.org tarball.
+  - **Legacy tar.gz**: set `download_url` to a URL with a scheme (e.g. `https://…`) and place the dataset manually under `./data/xView2/...`. Registration required at xview2.org. Run `python datasets/xView2_create_masks.py` to create the masks from the JSON labels.
 - The basic experimental setup for this dataset is a change detection task. Two images showing the same location are encoded using a foundation model as encoder. A smaller UPerNet model is trained to compute the 5-class segmentation mask from these encodings. Below is a CLI example for running the experiment with the Prithvi pretrained encoder:
    ```
    torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
@@ -269,6 +273,61 @@ This document provides a detailed overview of the datasets used in this reposito
     criterion=mse \
     task=regression
   ```
+
+### FLAIR-2 (GEO-Bench-2)
+
+- Land cover semantic segmentation over 13 classes from IGN aerial imagery, packaged as the GEO-Bench-2 `geobench_flair2.tortilla` artifact.
+- Splits, hashes, and class indexing follow [GEO-Bench-2](https://arxiv.org/abs/2511.15658). Splits are stored inside the tortilla file (`tortilla:data_split` column) and are domain-stratified by FLAIR's `D###` domain IDs. Local counts: train 4049, val 1022, test 3022.
+- The basic experiment uses RGB only and resizes to encoder input size. To use the aerial NIR band as well, add `B8` to `bands.optical` (mapped to channel index 3 in the aerial TIFF).
+
+  ```
+   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=flair2 \
+   encoder=remoteclip \
+   decoder=seg_upernet \
+   preprocessing=seg_resize \
+   criterion=cross_entropy \
+   task=segmentation
+  ```
+
+### SpaceNet 2 (GEO-Bench-2)
+
+- Building footprint semantic segmentation (3 classes: background slot, no-building, building) over WorldView-3 imagery, packaged as the GEO-Bench-2 `geobench_spacenet2.tortilla` artifact.
+- Splits follow [GEO-Bench-2](https://arxiv.org/abs/2511.15658), city-based checkerboard split for spatial separation. Local counts: train 5186, val 1461, test 2961. Native tile size is 650x650.
+- Auto-downloads `spacenet2/geobench_spacenet2.tortilla` from `kshitijrajsharma/geobench2-vhr` (~43 GB, mirrors AI Alliance's `aialliance/spacenet2`).
+- The mask is shifted by +1 (matching the upstream `geobench_v2` convention) so labels become `{1=no-building, 2=building}` and the class-0 slot is reserved.
+- Default config uses RGB (`B4 B3 B2`) extracted from the 8-band Worldview multispectral bands; the panchromatic band is not loaded.
+
+  ```
+   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=spacenet2 \
+   encoder=remoteclip \
+   decoder=seg_upernet \
+   preprocessing=seg_resize \
+   criterion=cross_entropy \
+   task=segmentation
+  ```
+
+### HOT Buildings
+
+- Binary building segmentation (background, building) over RGB VHR aerial + satellite imagery, distributed by HOTOSM.
+- Source: [`hotosm/vhr-building-segmentation`](https://huggingface.co/datasets/hotosm/vhr-building-segmentation) on Hugging Face. Splits (`train`, `validation`, `test`) match the upstream parquet shard names. Local counts: train 57890, val 7237, test 7236, all 256x256.
+- Auto-downloads parquet shards and `norm_stats.json` via `huggingface_hub.snapshot_download`. Image and mask cells are PNG-encoded inside parquet; pixel values are scaled to 0..1 in the dataset and normalised in the preprocessor.
+- The class distribution is not authoritative (no per-class pixel counts shipped upstream), so the YAML uses a placeholder `[0.5, 0.5]` for `distribution`.
+
+  ```
+   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=hot_buildings \
+   encoder=remoteclip \
+   decoder=seg_upernet \
+   preprocessing=seg_resize \
+   criterion=cross_entropy \
+   task=segmentation
+  ```
+
 ### Geo-Bench Datasets 
 Note that `export GEO_BENCH_DIR=YOUR/PATH/DIR` is required.
 -  For multi-label linear classification, e.g., m-BigEarthNet
@@ -351,3 +410,71 @@ Note that `export GEO_BENCH_DIR=YOUR/PATH/DIR` is required.
     - The batch size can be larger since we're only doing inference
     - `finetune` is set to `false` as we're only using the pre-trained encoder
     - The task is set to `knn_probe_multi_label` to handle multiple labels per sample
+
+### SpaceNet 3 (roads)
+
+- Binary road segmentation over WorldView-3 PS-RGB (0.3 m).
+- Loads from the parquet mirror at [`kshitijrajsharma/pangaea2-vhr`](https://huggingface.co/datasets/kshitijrajsharma/pangaea2-vhr) (config `sn3_roads`), pinned to revision `49dfe4f…`. Auto-downloads only the labeled `train` shards (~12 GB).
+- Upstream `test` is unlabeled (standard SpaceNet challenge format), so we carve **train / val / test (70 / 20 / 10) from upstream `train`, stratified per-AOI** (Vegas / Paris / Shanghai / Khartoum), `random_state=234`. This mirrors the GEO-Bench-2 SN2 implementation style ([Lacoste et al. 2025, §6.1.11](https://arxiv.org/abs/2511.15658)).
+- Images decode as uint16 GeoTIFF via `rasterio.open(io.BytesIO(...))` (PIL would silently truncate uint16 RGB).
+- Image size 1300x1300; encoder-time resize handled by preprocessing.
+
+  ```
+   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=spacenet3 \
+   encoder=remoteclip \
+   decoder=seg_upernet \
+   preprocessing=seg_default \
+   criterion=cross_entropy \
+   task=segmentation
+  ```
+
+### PureForest
+
+- Tree-species classification, **13 classes** (single-label) over 0.2 m IGN BD ORTHO aerial NRGB (NIR + R + G + B). Labels follow the official [PureForest dictionary](https://huggingface.co/datasets/IGNF/PureForest/blob/main/metadata/PureForestID-dictionnary.csv), which hierarchically groups 18 tree species into 13 semantic classes.
+- Loads from the parquet mirror at [`kshitijrajsharma/pangaea2-vhr`](https://huggingface.co/datasets/kshitijrajsharma/pangaea2-vhr) (config `pureforest`), pinned to revision `89dcb32…`. Splits (`train` / `val` / `test`) are defined by the upstream shard names.
+- The mirror ships PNGs in channel order `(NIR, R, G, B)`; band selection is driven by `bands.optical` in the YAML (default RGB = `B4 B3 B2`, mapped to channel indices `[1, 2, 3]`).
+- The parquet `label` column is the official 13-class `class_index` (0..12); the underlying 18-species name remains available as `class_name` and `species` columns for traceability.
+
+  ```
+   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=pureforest \
+   encoder=remoteclip \
+   decoder=cls_linear \
+   preprocessing=cls_resize \
+   criterion=cross_entropy \
+   task=linear_classification \
+   finetune=false
+  ```
+
+### EverWatch (GEO-Bench-2)
+
+- Bird-species object detection (9 classes) over Everglades VHR aerial RGB. Auto-downloads `geobench_everwatch.tortilla` from [`kshitijrajsharma/geobench2-vhr`](https://huggingface.co/datasets/kshitijrajsharma/geobench2-vhr).
+
+  ```
+   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=everwatch \
+   encoder=resnet50_pretrained \
+   decoder=det_faster_rcnn \
+   preprocessing=det_default \
+   criterion=none \
+   task=object_detection
+  ```
+
+### NZ-Cattle Detection (GEO-Bench-2)
+
+- Binary cattle object detection over New Zealand VHR aerial RGB. Auto-downloads `geobench_nzcattle.tortilla` from [`kshitijrajsharma/geobench2-vhr`](https://huggingface.co/datasets/kshitijrajsharma/geobench2-vhr).
+
+  ```
+   torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=nzcattle_det \
+   encoder=resnet50_pretrained \
+   decoder=det_faster_rcnn \
+   preprocessing=det_default \
+   criterion=none \
+   task=object_detection
+  ```

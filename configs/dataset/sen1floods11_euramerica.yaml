@@ -1,0 +1,119 @@
+_target_: pangaea.datasets.sen1floods11.Sen1Floods11
+dataset_name: Sen1Floods11
+root_path: ./data/sen1floods11_v1.1
+download_url: 
+gcs_bucket: sen1floods11
+auto_download: True
+
+img_size: 512
+multi_temporal: False
+multi_modal: True
+
+locations:
+ - Spain
+ - USA
+ - Bolivia
+ - Paraguay
+
+ignore_index: -1
+num_classes: 2
+classes:
+  - Not Water
+  - Water
+distribution:
+  - 0.905
+  - 0.095
+
+bands:
+  optical:
+    - B1
+    - B2
+    - B3
+    - B4
+    - B5
+    - B6
+    - B7
+    - B8
+    - B8A
+    - B9
+    - B10
+    - B11
+    - B12
+  sar:
+    - VV
+    - VH
+
+data_mean:
+  optical:
+    - 1626.91600224
+    - 1396.03470631
+    - 1364.06118417
+    - 1218.22847919
+    - 1466.07290663
+    - 2386.90297537
+    - 2845.61256277
+    - 2622.95796892
+    - 3077.48221481
+    - 486.87436782
+    - 63.77861008
+    - 2030.64763024
+    - 1179.16607221
+  sar:
+    - -10.184408 
+    - -16.895273
+
+data_std:
+  optical:
+    - 700.17133846
+    - 739.09452682
+    - 735.2482388
+    - 864.936695
+    - 776.8803358
+    - 921.36834309
+    - 1084.37346097
+    - 1022.63418007
+    - 1196.44255318
+    - 336.61105431
+    - 143.99923282
+    - 980.87061347
+    - 764.60836557
+  sar:
+    - 4.255339 
+    - 5.290568
+
+data_max:
+  optical:
+    - 9994
+    - 11630
+    - 15100
+    - 17418
+    - 10925
+    - 11569
+    - 12383
+    - 15516
+    - 13253
+    - 3947
+    - 1426
+    - 14093
+    - 13472
+  sar:
+    - 29.926394
+    - 17.376385
+data_min:
+  optical:
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+    - 0
+  sar:
+    - -65.45004
+    - -79.161446

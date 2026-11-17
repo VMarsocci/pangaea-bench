@@ -1,0 +1,41 @@
+trainer:
+  _target_: pangaea.engine.det_trainer.DetTrainer
+  model: null
+  train_loader: null
+  optimizer: null
+  lr_scheduler: null
+  evaluator: null
+  exp_dir: null
+  device: null
+  criterion: null
+
+  n_epochs: 50
+  precision: fp32
+  ckpt_interval: 20
+  eval_interval: 5
+  log_interval: 5
+  best_metric_key: map
+  use_wandb: ${use_wandb}
+  wandb_offline: ${wandb_offline}
+  wandb_offline_sync_communication_dir: ${wandb_offline_sync_communication_dir}
+
+evaluator:
+  _target_: pangaea.engine.det_evaluator.DetEvaluator
+  val_loader: null
+  exp_dir: null
+  device: null
+  inference_mode: sliding
+  nms_threshold: 0.5
+  use_wandb: ${use_wandb}
+  wandb_offline: ${wandb_offline}
+  wandb_offline_sync_communication_dir: ${wandb_offline_sync_communication_dir}
+  iou_type: bbox
+  class_metrics: true
+  save_predictions: false
+  save_visualizations: false
+  save_output_dir: null
+  max_samples_to_visualize: -1
+  overwrite: true
+  rgb_bands: [0, 1, 2]
+
+collate_fn: detection

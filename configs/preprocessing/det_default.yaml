@@ -1,0 +1,24 @@
+train:
+    _target_: pangaea.engine.data_preprocessor.DetPreprocessor
+    preprocessor_cfg:
+        - _target_: pangaea.engine.data_preprocessor.DetSpatialAugment
+          hflip_prob: 0.5
+          vflip_prob: 0.5
+          crop: true
+        - _target_: pangaea.engine.data_preprocessor.BandFilter
+        - _target_: pangaea.engine.data_preprocessor.NormalizeMeanStd
+        - _target_: pangaea.engine.data_preprocessor.BandPadding
+
+val:
+    _target_: pangaea.engine.data_preprocessor.DetPreprocessor
+    preprocessor_cfg:
+        - _target_: pangaea.engine.data_preprocessor.BandFilter
+        - _target_: pangaea.engine.data_preprocessor.NormalizeMeanStd
+        - _target_: pangaea.engine.data_preprocessor.BandPadding
+
+test:
+    _target_: pangaea.engine.data_preprocessor.DetPreprocessor
+    preprocessor_cfg:
+        - _target_: pangaea.engine.data_preprocessor.BandFilter
+        - _target_: pangaea.engine.data_preprocessor.NormalizeMeanStd
+        - _target_: pangaea.engine.data_preprocessor.BandPadding

@@ -1,0 +1,43 @@
+_target_: pangaea.datasets.nzcattle_det.NZCattleDet
+dataset_name: NZCattleDet
+root_path: ./data/nzcattle_det
+download_url: kshitijrajsharma/geobench2-vhr
+auto_download: True
+
+img_size: 500
+multi_temporal: False
+multi_modal: False
+
+ignore_index: -1
+num_classes: 2
+classes:
+  - Background
+  - Cattle
+
+distribution:
+  - 0.0
+  - 1.0
+
+bands:
+  optical:
+    - B4
+    - B3
+    - B2
+
+data_mean:
+  optical:
+    - 126.2773
+    - 130.0801
+    - 106.5241
+
+data_std:
+  optical:
+    - 23.4018
+    - 19.8655
+    - 19.0123
+
+data_min:
+  optical: [0.0, 0.0, 0.0]
+
+data_max:
+  optical: [255.0, 255.0, 255.0]

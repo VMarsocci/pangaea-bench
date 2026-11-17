@@ -1,5 +1,13 @@
 **/__pycache__/
 *.egg-info
+.venv/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+dist/
+build/
+.python-version
 
 aaa_mystuff/
 work-dir/
@@ -22,3 +30,6 @@ data/mados/splits/*
 
 .vscode
 .idea
+*.log
+
+scripts/*

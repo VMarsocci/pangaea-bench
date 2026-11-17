@@ -1,0 +1,39 @@
+_target_: pangaea.encoders.anysat_encoder.AnySat_Encoder
+
+encoder_weights: ./pretrained_models/AnySat.pth
+download_url: https://huggingface.co/g-astruc/AnySat/resolve/main/models/AnySat.pth
+
+model_size: base
+flash_attn: False
+
+input_size: 224
+patch_size: 10
+output: patch
+output_modality: auto
+
+embed_dim: 768
+
+input_bands:
+  optical:
+    - B2
+    - B3
+    - B4
+    - B5
+    - B6
+    - B7
+    - B8
+    - B8A
+    - B11
+    - B12
+  # Use SAR-only by replacing the optical block above with:
+  # sar:
+  #   - VV
+  #   - VH
+
+output_layers:
+  - 3
+  - 5
+  - 7
+  - 11
+
+output_dim: 768

@@ -392,6 +392,7 @@ class SN7MAPPING(AbstractSN7):
 
         item = self.items[index]
         aoi_id, year, month = item['aoi_id'], int(item['year']), int(item['month'])
+        filename = f"{aoi_id}_{year}_{month}_{item['i']}_{item['j']}"
 
         image = self.load_planet_mosaic(aoi_id, year, month)
         target = self.load_building_label(aoi_id, year, month)
@@ -413,7 +414,7 @@ class SN7MAPPING(AbstractSN7):
             },
             'target': target,
             # 'weight': weight,
-            'metadata': {}
+            'metadata': {'filename': filename}
         }
 
         return output
@@ -561,6 +562,7 @@ class SN7CD(AbstractSN7):
         # change label between first (0) and last (-1) timestamp
         year_t1, month_t1 = timestamps[0]['year'], timestamps[0]['month']
         year_t2, month_t2 = timestamps[-1]['year'], timestamps[-1]['month']
+        filename = f"{aoi_id}_{year_t1}_{month_t1}_{year_t2}_{month_t2}_{item['i']}_{item['j']}"
         target = self.load_change_label(aoi_id, year_t1, month_t1, year_t2, month_t2)
         target = torch.from_numpy(target).long()
 
@@ -580,7 +582,7 @@ class SN7CD(AbstractSN7):
             },
             'target': target,
             'weight': weight,
-            'metadata': {}
+            'metadata': {'filename': filename}
         }
 
         return output

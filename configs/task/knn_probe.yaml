@@ -9,6 +9,8 @@ trainer:
   n_epochs: 1
   precision: fp32
   use_wandb: ${use_wandb}
+  wandb_offline: ${wandb_offline}
+  wandb_offline_sync_communication_dir: ${wandb_offline_sync_communication_dir}
 
 evaluator:
   _target_: pangaea.engine.evaluator.KNNClassificationEvaluator
@@ -17,5 +19,7 @@ evaluator:
   exp_dir: null
   device: null
   use_wandb: ${use_wandb}
+  wandb_offline: ${wandb_offline}
+  wandb_offline_sync_communication_dir: ${wandb_offline_sync_communication_dir}
   inference_mode: null
   sliding_inference_batch: null

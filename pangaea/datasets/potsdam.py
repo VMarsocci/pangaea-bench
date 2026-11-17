@@ -119,6 +119,7 @@ class Potsdam(RawGeoFMDataset):
         return len(self.image_list)
 
     def __getitem__(self, index):
+        filename = pathlib.Path(self.image_list[index]).name
         image = read_image(pathlib.Path(self.image_list[index]))
         target = read_image(
             pathlib.Path(self.mask_list[index])
@@ -153,7 +154,7 @@ class Potsdam(RawGeoFMDataset):
                 "optical": image,
             },
             "target": target,
-            "metadata": {},
+            "metadata": {"filename": filename},
         }
 
     @staticmethod

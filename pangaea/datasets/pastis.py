@@ -363,7 +363,7 @@ class Pastis(RawGeoFMDataset):
                 "sar": sar_ts.to(torch.float32),
             },
             "target": output["label"].to(torch.int64),
-            "metadata": {},
+            "metadata": {"filename": str(line["ID_PATCH"])},
         }
 
     def __len__(self) -> int:

@@ -29,10 +29,12 @@ class Trainer:
         device: torch.device,
         precision: str,
         use_wandb: bool,
+        wandb_offline: bool,
         ckpt_interval: int,
         eval_interval: int,
         log_interval: int,
         best_metric_key: str,
+        wandb_offline_sync_communication_dir: str | pathlib.Path = "~/.wandb_osh_communication",
     ):
         """Initialize the Trainer.
 
@@ -66,6 +68,7 @@ class Trainer:
         self.exp_dir = exp_dir
         self.device = device
         self.use_wandb = use_wandb
+        self.wandb_offline = wandb_offline
         self.ckpt_interval = ckpt_interval
         self.eval_interval = eval_interval
         self.log_interval = log_interval
@@ -87,7 +90,9 @@ class Trainer:
         self.enable_mixed_precision = precision != "fp32"
         self.precision = torch.float16 if (precision == "fp16") else torch.bfloat16
         # self.scaler = torch.GradScaler("cuda", enabled=self.enable_mixed_precision)
-        self.scaler = torch.cuda.amp.GradScaler("cuda", enabled=self.enable_mixed_precision)
+        self.scaler = torch.cuda.amp.GradScaler(
+            "cuda", enabled=self.enable_mixed_precision
+        )
 
         self.start_epoch = 0
 
@@ -95,6 +100,12 @@ class Trainer:
             import wandb
 
             self.wandb = wandb
+            if wandb_offline:
+                from wandb_osh.hooks import TriggerWandbSyncHook
+
+                self.trigger_sync = TriggerWandbSyncHook(
+                    communication_dir=pathlib.Path(wandb_offline_sync_communication_dir)
+                )
 
     def train(self) -> None:
         """Train the model for n_epochs then evaluate the model and save the best model."""
@@ -132,7 +143,9 @@ class Trainer:
         end_time = time.time()
         for batch_idx, data in enumerate(self.train_loader):
             image, target = data["image"], data["target"]
-            image = {modality: value.to(self.device) for modality, value in image.items()}
+            image = {
+                modality: value.to(self.device) for modality, value in image.items()
+            }
             target = target.to(self.device)
 
             self.training_stats["data_time"].update(time.time() - end_time)
@@ -153,7 +166,7 @@ class Trainer:
             self.scaler.scale(loss).backward()
             self.scaler.step(self.optimizer)
             self.scaler.update()
-            self.training_stats['loss'].update(loss.item())
+            self.training_stats["loss"].update(loss.item())
             with torch.no_grad():
                 self.compute_logging_metrics(logits, target)
             if (batch_idx + 1) % self.log_interval == 0:
@@ -174,6 +187,11 @@ class Trainer:
                     },
                     step=epoch * len(self.train_loader) + batch_idx,
                 )
+                if self.wandb_offline:
+                    try:
+                        self.trigger_sync()
+                    except OSError as e:
+                        self.logger.error(f"Error syncing Weights and Biases: {e}")
 
             self.training_stats["batch_time"].update(time.time() - end_time)
             end_time = time.time()
@@ -230,7 +248,9 @@ class Trainer:
         Args:
             resume_path (str | pathlib.Path): path to the checkpoint.
         """
-        model_dict = torch.load(resume_path, map_location=self.device, weights_only=False)
+        model_dict = torch.load(
+            resume_path, map_location=self.device, weights_only=False
+        )
         if "model" in model_dict:
             self.model.module.load_state_dict(model_dict["model"])
             self.optimizer.load_state_dict(model_dict["optimizer"])
@@ -271,13 +291,13 @@ class Trainer:
         """
         curr_metric = eval_metrics[self.best_metric_key]
         if isinstance(curr_metric, list):
-            curr_metric = curr_metric[1] if self.num_classes == 1 else np.mean(curr_metric)
+            curr_metric = (
+                curr_metric[1] if self.num_classes == 1 else np.mean(curr_metric)
+            )
         if self.best_metric_comp(curr_metric, self.best_metric):
             self.best_metric = curr_metric
             best_ckpt = self.get_checkpoint(epoch)
-            self.save_model(
-                epoch, is_best=True, checkpoint=best_ckpt
-            )
+            self.save_model(epoch, is_best=True, checkpoint=best_ckpt)
 
     @torch.no_grad()
     def compute_logging_metrics(
@@ -309,8 +329,11 @@ class Trainer:
         left_batch_all = (
             self.batch_per_epoch * (self.n_epochs - epoch - 1) + left_batch_this_epoch
         )
-        left_eval_times = ((self.n_epochs - 0.5) // self.eval_interval + 2
-                           - self.training_stats["eval_time"].count)
+        left_eval_times = (
+            (self.n_epochs - 0.5) // self.eval_interval
+            + 2
+            - self.training_stats["eval_time"].count
+        )
         left_time_this_epoch = sec_to_hm(
             left_batch_this_epoch * self.training_stats["batch_time"].avg
         )
@@ -374,6 +397,8 @@ class LinearClassificationTrainer(Trainer):
         best_metric_key: str,
         multi_label: bool = False,  # <-- Flag for multi-label classification, e.g., BigEarthNet dataset
         topk: int = 1,  # Top-k predictions to use in multi-label scenario
+        wandb_offline: bool = False,
+        wandb_offline_sync_communication_dir: str | pathlib.Path = "",
     ):
         """Initialize the Trainer for Classification task.
 
@@ -411,8 +436,10 @@ class LinearClassificationTrainer(Trainer):
             eval_interval=eval_interval,
             log_interval=log_interval,
             best_metric_key=best_metric_key,
+            wandb_offline=wandb_offline,
+            wandb_offline_sync_communication_dir=wandb_offline_sync_communication_dir,
         )
-        
+
         self.multi_label = multi_label
         self.topk = topk
 
@@ -441,16 +468,16 @@ class LinearClassificationTrainer(Trainer):
         """
         if self.multi_label:
             preds_prob = torch.sigmoid(logits)
-            topk_indices = preds_prob.topk(self.topk, dim=1).indices  
+            topk_indices = preds_prob.topk(self.topk, dim=1).indices
             preds = torch.zeros_like(preds_prob, dtype=torch.bool)
             preds.scatter_(1, topk_indices, 1)
         else:
             preds = torch.argmax(logits, dim=1)
-            
+
             one_hot_preds = torch.zeros(
                 size=(preds.size(0), self.num_classes),
                 device=preds.device,
-                dtype=torch.bool
+                dtype=torch.bool,
             )
             one_hot_preds.scatter_(1, preds.unsqueeze(1), 1)
             preds = one_hot_preds
@@ -458,7 +485,7 @@ class LinearClassificationTrainer(Trainer):
             one_hot_targets = torch.zeros_like(preds)
             one_hot_targets.scatter_(1, targets.unsqueeze(1), 1)
             targets = one_hot_targets
-        
+
         # Micro-average: aggregate across all classes.
         preds = preds.bool()
         targets = targets.bool()
@@ -466,22 +493,22 @@ class LinearClassificationTrainer(Trainer):
         FP = (preds & ~targets).sum().float()
         FN = (~preds & targets).sum().float()
         TN = (~preds & ~targets).sum().float()
-        
-        acc = (TP + TN) / (TP + TN + FP + FN + 1e-8) 
-        precision = TP / (TP + FP + 1e-8) 
-        recall = TP / (TP + FN + 1e-8)  
+
+        acc = (TP + TN) / (TP + TN + FP + FN + 1e-8)
+        precision = TP / (TP + FP + 1e-8)
+        recall = TP / (TP + FN + 1e-8)
         f1 = 2 * precision * recall / (precision + recall + 1e-8)
 
         self.training_metrics["accuracy"].update(acc.item())
         self.training_metrics["F1"].update(f1.item())
-    
+
 
 class KNNTrainer(Trainer):
     """A zero-learning shell so run.py can stay unchanged."""
-    
+
     def __init__(
         self,
-        model: nn.Module,              # should be KNNClassifier
+        model: nn.Module,  # should be KNNClassifier
         train_loader: DataLoader,
         evaluator,
         lr_scheduler,
@@ -492,14 +519,18 @@ class KNNTrainer(Trainer):
         n_epochs: int,
         precision: str,
         use_wandb: bool,
+        wandb_offline: bool = False,
+        wandb_offline_sync_communication_dir: str | pathlib.Path = "",
     ):
-        dummy_opt   = torch.optim.SGD([torch.empty(0, device=device, requires_grad=True)], lr=1)
+        dummy_opt = torch.optim.SGD(
+            [torch.empty(0, device=device, requires_grad=True)], lr=1
+        )
         dummy_sched = torch.optim.lr_scheduler.LambdaLR(dummy_opt, lambda _: 1)
 
         super().__init__(
             model=model,
             train_loader=train_loader,
-            criterion=nn.Identity(),       # never used
+            criterion=nn.Identity(),  # never used
             optimizer=dummy_opt,
             lr_scheduler=dummy_sched,
             evaluator=evaluator,
@@ -512,9 +543,12 @@ class KNNTrainer(Trainer):
             eval_interval=1,
             log_interval=999,
             best_metric_key="top1",
+            wandb_offline=wandb_offline,
+            wandb_offline_sync_communication_dir=wandb_offline_sync_communication_dir,
         )
         self.logger: logging.Logger = logging.getLogger()
         self.train_loader = train_loader
+
     # ------------------------------------------------------------------ #
     def train(self):
         self.logger.info("=========== k-NN evaluation only ===========")
@@ -531,7 +565,7 @@ class KNNTrainer(Trainer):
     def compute_loss(self, logits, target): ...
     def compute_logging_metrics(self, logits, target): ...
 
-                       
+
 class SegTrainer(Trainer):
     def __init__(
         self,
@@ -550,6 +584,8 @@ class SegTrainer(Trainer):
         eval_interval: int,
         log_interval: int,
         best_metric_key: str,
+        wandb_offline: bool = False,
+        wandb_offline_sync_communication_dir: str | pathlib.Path = "",
     ):
         """Initialize the Trainer for segmentation task.
         Args:
@@ -585,6 +621,8 @@ class SegTrainer(Trainer):
             eval_interval=eval_interval,
             log_interval=log_interval,
             best_metric_key=best_metric_key,
+            wandb_offline=wandb_offline,
+            wandb_offline_sync_communication_dir=wandb_offline_sync_communication_dir,
         )
 
         self.training_metrics = {
@@ -676,6 +714,8 @@ class RegTrainer(Trainer):
         eval_interval: int,
         log_interval: int,
         best_metric_key: str,
+        wandb_offline: bool = False,
+        wandb_offline_sync_communication_dir: str | pathlib.Path = "",
     ):
         """Initialize the Trainer for regression task.
         Args:
@@ -711,6 +751,8 @@ class RegTrainer(Trainer):
             eval_interval=eval_interval,
             log_interval=log_interval,
             best_metric_key=best_metric_key,
+            wandb_offline=wandb_offline,
+            wandb_offline_sync_communication_dir=wandb_offline_sync_communication_dir,
         )
 
         self.training_metrics = {
@@ -729,6 +771,13 @@ class RegTrainer(Trainer):
         Returns:
             torch.Tensor: loss value.
         """
+
+        # sparse backprop
+        if self.train_loader.dataset.dataset_name == "AGBDLite" :
+            valid_mask = (target != self.train_loader.dataset.ignore_index)
+            logits = logits[valid_mask.unsqueeze(1)].unsqueeze(1)
+            target = target[valid_mask]
+
         return self.criterion(logits.squeeze(dim=1), target)
 
     @torch.no_grad()
@@ -742,6 +791,11 @@ class RegTrainer(Trainer):
             target (torch.Tensor): target tensor.
         """
 
+        # sparse backprop
+        if self.train_loader.dataset.dataset_name == "AGBDLite" :
+            valid_mask = (target != self.train_loader.dataset.ignore_index)
+            logits = logits[valid_mask.unsqueeze(1)].unsqueeze(1)
+            target = target[valid_mask]
+
         mse = F.mse_loss(logits.squeeze(dim=1), target)  
         self.training_metrics["MSE"].update(mse.item())
-

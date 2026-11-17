@@ -35,14 +35,15 @@
 
 
 📢 **News**
+ - [11/2026] **PANGAEA 2.0**: new encoders (TerraMind, THOR, Prithvi-EO-2.0, SkySense variants, Clay, Galileo, AnySat, MMEarth, DINOv3 and generic timm backbones), new datasets (FLAIR-2, SpaceNet 2/3, PureForest, HOT Buildings, EverWatch, NZ-Cattle, AGBD-Lite, regional Sen1Floods11 splits), a new [object detection](#object-detection) task, [cross-testing](#-cross-testing-on-a-different-dataset), automatic dataset downloads and a [uv-based setup](#️-setup).
  - [04/06/2025] We integrate [Geo-Bench](https://arxiv.org/abs/2306.03831) Datasets, including six segmentation and six classification tasks.
  <!-- - [23/04/2025] we pushed a new version of the code, fixing different bugs (e.g. commands are working for all the datasets now, metric computation with ignore_index is fixed, etc...). In the next month, we will provide: all downloadable datasets and models, downloadable stratified subsamples for all the datasets, classification. Stay tuned! -->
- - [22/04/2025] on EarthDay, PANGAEA was officialy adopted to benchmark TerraMind. Read the [news](https://www.linkedin.com/posts/simonetta-cheli-7669879b_earthday-earthobservation-activity-7320439907028467712-LSzl?utm_source=share&utm_medium=member_desktop&rcm=ACoAACdT8q0BDNWYKAdDYGUe_X4fQOzSHO8jgAs) and the [pre-print](https://arxiv.org/abs/2504.11171). We will release the benchmarking code in PANGAEA very soon!
+ - [22/04/2025] on EarthDay, PANGAEA was officialy adopted to benchmark TerraMind. Read the [news](https://www.linkedin.com/posts/simonetta-cheli-7669879b_earthday-earthobservation-activity-7320439907028467712-LSzl?utm_source=share&utm_medium=member_desktop&rcm=ACoAACdT8q0BDNWYKAdDYGUe_X4fQOzSHO8jgAs) and the [pre-print](https://arxiv.org/abs/2504.11171). The TerraMind benchmarking code is now included in PANGAEA.
  - [05/12/2024] the [pre-print](https://arxiv.org/abs/2412.04204) is out!
 
 ## 📚 Introduction
 
-While geospatial foundation models (GFMs) have proliferated rapidly, their evaluations remain inconsistent and narrow. Existing works often utilize suboptimal downstream datasets (e.g., EuroSAT) and tasks (e.g., land cover classification), which constrain comparability and real-world usability. Additionally, a lack of diversity in evaluation protocols, including image resolution and sensor types, further complicates the extensive assessments of GFM performance. 
+While geospatial foundation models (GFMs) have proliferated rapidly, their evaluations remain inconsistent and narrow. Existing works often utilize suboptimal downstream datasets (e.g., EuroSAT) and tasks (e.g., land cover classification), which constrain comparability and real-world usability. Additionally, a lack of diversity in evaluation protocols, including image resolution and sensor types, further complicates the extensive assessments of GFM performance.
 
 To bridge this gap, we propose a standardized evaluation protocol that incorporates a wide-ranging selection of datasets, tasks, resolutions, and sensor types, establishing a robust and widely applicable benchmark for GFMs.
 
@@ -65,6 +66,18 @@ For the moment, we support the following **models**:
 |  [CROMA](https://arxiv.org/pdf/2311.00566)      | CROMA: Remote Sensing Representations with Contrastive Radar-Optical Masked Autoencoders  | [link](https://github.com/antofuller/CROMA) | Contrastive Learning, MAE |
 |  [Prithvi](https://arxiv.org/pdf/2310.18660)    | Foundation Models for Generalist Geospatial Artificial Intelligence      | [link](https://github.com/NASA-IMPACT/hls-foundation-os) | MAE, Multi-temporal |
 |  [RemoteCLIP](https://arxiv.org/pdf/2306.11029) | RemoteCLIP: A Vision Language Foundation Model for Remote Sensing    | [link](https://github.com/ChenDelong1999/RemoteCLIP) | Contrastive Learning |
+|  [SkySense](https://arxiv.org/abs/2312.10115)   | Skysense: A Multi-Modal Remote Sensing Foundation Model Towards Universal Interpretation for Earth Observation Imagery      | [link](https://github.com/Jack-bo1220/SkySense#abstract) | Contrastive Learning, Multi-modal |
+|  [TerraMind](https://arxiv.org/abs/2504.11171)  | TerraMind: Large-Scale Generative Multimodality for Earth Observation | [link](https://huggingface.co/ibm-esa-geospatial/TerraMind-1.0-base) | Any-to-any generative, Multi-modal |
+|  THOR                                           | THOR foundation model (FM4CS) | [link](https://huggingface.co/FM4CS/THOR-1.0-base) | ViT, Multi-sensor |
+|  [Prithvi-EO-2.0](https://arxiv.org/abs/2412.02732) | Prithvi-EO-2.0: A Versatile Multi-Temporal Foundation Model for Earth Observation Applications | [link](https://huggingface.co/ibm-nasa-geospatial/Prithvi-EO-2.0-300M-TL) | MAE, Multi-temporal |
+|  Clay v1.5                                      | Clay Foundation Model | [link](https://huggingface.co/made-with-clay/Clay) | MAE, Sensor-agnostic |
+|  [Galileo](https://arxiv.org/abs/2502.09356)    | Galileo: Learning Global & Local Features of Many Remote Sensing Modalities | [link](https://huggingface.co/nasaharvest/galileo) | Masked modeling, Multi-modal |
+|  [AnySat](https://arxiv.org/abs/2412.14123)     | AnySat: One Earth Observation Model for Many Resolutions, Scales, and Modalities | [link](https://huggingface.co/g-astruc/AnySat) | JEPA, Multi-resolution |
+|  [MMEarth](https://arxiv.org/abs/2405.02771)    | MMEarth: Exploring Multi-Modal Pretext Tasks For Geospatial Representation Learning | [link](https://github.com/vishalned/MMEarth-train) | ConvNeXt V2, Multi-modal pretext |
+|  [DINOv3](https://arxiv.org/abs/2508.10104)     | DINOv3 | [link](https://github.com/facebookresearch/dinov3) | Self-distillation, ViT/ConvNeXt (incl. satellite weights) |
+|  timm backbones                                 | Generic [timm](https://github.com/huggingface/pytorch-image-models) encoders (e.g. ConvNeXt, ResNet-50) | [link](https://github.com/huggingface/pytorch-image-models) | Supervised ImageNet baselines |
+
+Encoder configs are in `configs/encoder/`, e.g. `terramind_tiny`, `terramind_base`, `terramind_large` (+ `*_optical`), `thor`, `prithvi2_100m/300m/600m`, `skysense_s1/s2/s2s1/vhr`, `clay_v1_5`, `galileo`, `anysat`, `mmearth` (+ `mmearth_optical`), `dinov3_vits16/vitb16/vitl16/vitl16_sat`, `dinov3_convnext_small/base/large`, `convnext_xlarge_in22k_ft_in1k`, `resnet50_a1_in1k`.
 
 
 And the following **datasets**:
@@ -87,6 +100,11 @@ And the following **datasets**:
 - **Potsdam dataset** [[Link](https://www.isprs.org/education/benchmarks/UrbanSemLab/2d-sem-label-potsdam.aspx)]. Contributed by [@pierreadorni](https://github.com/pierreadorni).
 - **Open-Canopy** [[Link](https://arxiv.org/abs/2407.09392)]. Contributed by [@pierreadorni](https://github.com/pierreadorni).
 - **Geo-Bench datasets** [[Link](https://github.com/ServiceNow/geo-bench)]. Contributed by [@yurujaja](https://github.com/yurujaja).
+- **AGBD-Lite dataset** [[Link](https://huggingface.co/datasets/prs-eth/AGBD-Lite)]. Contributed by [@ghjuliasialelli](https://github.com/ghjuliasialelli).
+- **FLAIR-2, SpaceNet 2, EverWatch, NZ-Cattle (GEO-Bench-2 VHR), SpaceNet 3 (roads), PureForest, HOT Buildings** [[Link](https://huggingface.co/datasets/kshitijrajsharma/geobench2-vhr)]. Contributed by [@kshitijrajsharma](https://github.com/kshitijrajsharma).
+- **Sen1Floods11 regional splits** (`sen1floods11_euramerica`, `sen1floods11_africa`, `sen1floods11_asia`) for cross-region testing. Contributed by [@pierreadorni](https://github.com/pierreadorni).
+
+See the [Dataset Guide](DATASET_GUIDE.md) for details and example commands for each dataset.
 
 The repository supports the following **tasks** using geospatial (foundation) models:
  - [Single Temporal Semantic Segmentation](#single-temporal-semantic-segmentation)
@@ -96,11 +114,14 @@ The repository supports the following **tasks** using geospatial (foundation) mo
  - [Multi-Temporal Regression](#multi-temporal-regression)
  - [Linear Classification](#linear-classification)
  - [KNN Probe Classification](#knn-probe-classification)
+ - [Object Detection](#object-detection)
 
 It is also possible to train some [supervised baselines](#-fully-supervised-baseline), based on UNet and ViT.
 
 ## 🗺️ Datasets details
 Please refer to [**Dataset Guide**](DATASET_GUIDE.md) to understand the processing requirements and commands specific to each dataset.
+
+Most dataset configs set `auto_download: True`: the data is downloaded to `dataset.root_path` the first time it is used (most new datasets are hosted on Hugging Face). To use an existing local copy, override `dataset.root_path=/path/to/data`.
 
 If you want to fast-prototype your model, maybe you want to run fast experiments on smaller datasets. We suggest starting with MADOS, HLSBurnScars, SpaceNet7 and Sen1Floods11 and AI4SmallFarms. They offer good diversity in satellites and domains. In the future, we will release stratified subsets for each dataset to facilitate fast prototyping across all datasets.
 
@@ -113,50 +134,99 @@ cd pangaea-bench
 
 **Dependencies**
 
-We provide several ways to install the dependencies.
+The project uses [uv](https://docs.astral.sh/uv/) for environment and dependency management. [Install uv](https://docs.astral.sh/uv/getting-started/installation/#installation-methods), then:
 
-1. **Using either Conda or Mamba**:
-    ```
-    conda env create -f environment.yaml
-    conda activate pangaea-bench
-    ```
+```bash
+uv sync --all-groups
+uv run pre-commit install --install-hooks
+```
 
-    Optional: install [Mamba](https://github.com/conda-forge/miniforge/releases/) for faster resolution times
-    ```
-    wget https://github.com/conda-forge/miniforge/releases/download/24.3.0-0/Mambaforge-24.3.0-0-Linux-x86_64.sh
-    sh ./Mambaforge-24.3.0-0-Linux-x86_64.sh
+`uv sync`:
 
-    mamba env create -f environment.yaml
-    mamba activate pangaea-bench
-    ```
+1. Installs a matching Python interpreter (3.11, 3.12, or 3.13) if missing.
+2. Creates `.venv/` in the project root.
+3. Installs all locked runtime + dev dependencies.
+4. Installs `pangaea` itself in editable mode.
 
-2. **Using pip**, create a Python native virtual environment and install dependencies into it:
-   ```
-   export PANGAEA_PATH=/path/to/venv/pangaea-bench # change this
-   python3 -m venv ${PANGAEA_PATH}
-   source ${PANGAEA_PATH}/bin/activate
-   
-   pip install -r requirements.txt
-   ```
- **Then install the code repository as a development package**
-   ```
-   pip install --no-build-isolation --no-deps -e .
-   ```
+PyTorch is installed from PyPI's default `torch` wheel, which bundles CUDA at build time and falls back to CPU automatically when no NVIDIA driver is present; the lockfile works on a laptop and on a GPU box.
 
+Run things through uv:
+
+```bash
+uv run pytest
+uv run pre-commit run --all-files
+uv run torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py ...
+```
+
+Adding or removing a dependency:
+
+```bash
+uv add <pkg>             # runtime
+uv add --group dev <pkg> # dev-only
+uv remove <pkg>
+```
+
+### 📡 Offline Weights & Biases (wandb) Syncing
+
+This repository supports offline wandb logging, which is useful when running experiments on compute clusters without internet access. The `wandb-osh` (Offline Sync Hook) module enables automatic syncing of wandb logs from offline compute nodes to wandb via a head node with internet access.
+
+#### How it Works
+
+1. **Compute nodes** (without internet): Set `wandb_offline=true` during training. The hook automatically creates sync request files in a shared communication directory (`~/.wandb_osh_communication` by default).
+2. **Head node** (with internet): Run the `wandb-osh` command, which monitors the communication directory and synchronizes runs to wandb whenever a sync request is detected.
+
+#### Setup
+
+To enable offline mode during training on compute nodes, add the `wandb_offline=true` flag:
+
+```bash
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=hlsburnscars \
+   encoder=remoteclip \
+   decoder=seg_upernet \
+   preprocessing=seg_default \
+   criterion=cross_entropy \
+   task=segmentation \
+   wandb_offline=true
+```
+
+You can also customize the communication directory where sync requests are written. By default, it uses `~/.wandb_osh_communication`. To use a different directory (useful for shared file systems on clusters), specify it via the `wandb_offline_sync_communication_dir` parameter:
+
+```bash
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=hlsburnscars \
+   encoder=remoteclip \
+   decoder=seg_upernet \
+   preprocessing=seg_default \
+   criterion=cross_entropy \
+   task=segmentation \
+   wandb_offline=true \
+   wandb_offline_sync_communication_dir=/shared/filesystem/.wandb-osh
+```
+
+On your **head node with internet access**, start the sync daemon, pointing it to the same communication directory:
+
+```bash
+wandb-osh --communication-dir /shared/filesystem/.wandb-osh
+```
+
+This will monitor the specified communication directory and automatically sync runs. For additional options and advanced usage, see `wandb-osh --help` or the [wandb-osh documentation](https://github.com/klieret/wandb-offline-sync-hook).
 
 ## 🏋️ Training
 
 To run experiments, please refer to `configs/train.yaml`. In it, in addition to some basic info about training (e.g. `finetune` for fine-tuning also the encoder, `limited_label_train` to train the model on a stratified subset of labels, `num_workers`, `batch_size` and so on), there are 5 different basic configs:
 - `dataset`: Information of downstream datasets such as image size, band_statistics, classes etc.
 - `decoder`: Downstream task decoder fine-tuning related parameters, like the type of architecture (e.g. UPerNet), which multi-temporal strategy to use, and other related hparams (e.g. nr of channels)
-- `encoder`: GFM encoder related parameters. `output_layers` is used for which layers are used for Upernet decoder.  
+- `encoder`: GFM encoder related parameters. `output_layers` is used for which layers are used for Upernet decoder.
 - `preprocessing`: Both preprocessing and augmentations steps required for the dataset, such as bands adaptation, normalization, resize/crop.
 - `task`: Information about the trainer and evaluator. Most of the parameters are overwritten in run. Trainer and evaluator can be used for segmentation (`SegTrainer`) or regression (`RegTrainer`). Different parameter like precision training (`precision`) can be set in it.
 
 
 Other 3 configs are used to set other training parameters:
 - `criterion`: in which you can choose the loss for the training. Consider that if you want to add a custom loss, you should add to `pangaea/utils/losses.py`. Currently, we support `cross_entropy`, `weigthed_cross_entropy`, `dice` and `mae` loss functions.
-- `lr_scheduler`: in which you can choose the scheduler. Consider that if you want to add a custom one, you should add to `pangaea/utils/schedulers.py`. 
+- `lr_scheduler`: in which you can choose the scheduler. Consider that if you want to add a custom one, you should add to `pangaea/utils/schedulers.py`.
 - `optimizer`: in which you can choose the optimizer. Consider that if you want to add a custom one, you should add to `pangaea/utils/optimizers.py`.
 
 
@@ -199,7 +269,7 @@ torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
 ```
 
 #### Multi-Temporal Semantic Segmentation
-- Multi-temporal decoder config (e.g. `configs/decoder/seg_upernet_mt_ltae.yaml` if you want to use `ltae` as a strategy to combine multi-temporal info) should be used. 
+- Multi-temporal decoder config (e.g. `configs/decoder/seg_upernet_mt_ltae.yaml` if you want to use `ltae` as a strategy to combine multi-temporal info) should be used.
 - In addition, in the dataset config, indicate the number of time frames, e.g., `multi_temporal: 6`
 
 An example of using SSL4EO-DINO on CropTypeMapping is as below
@@ -248,7 +318,7 @@ To overwrite parameters, please check the Single Temporal Semantic Segmentation 
 
 #### Single Temporal Regression
 
-The regression decoder (e.g. `configs/decoder/reg_upernet.yaml`) and the regression task (e.g. `configs/task/regression.yaml`) configs should be used. 
+The regression decoder (e.g. `configs/decoder/reg_upernet.yaml`) and the regression task (e.g. `configs/task/regression.yaml`) configs should be used.
 E.g. Prithvi encoder on BioMassters
 
 ```
@@ -266,7 +336,7 @@ To overwrite parameters, please check the Single Temporal Semantic Segmentation 
 
 #### Multi-Temporal Regression
 
-The multi-temporal regression decoder (e.g. `configs/decoder/reg_upernet_mt_ltae.yaml` or `configs/decoder/reg_upernet_mt_linear.yaml`) and the regression task (e.g. `configs/task/regression.yaml`) configs should be used. 
+The multi-temporal regression decoder (e.g. `configs/decoder/reg_upernet_mt_ltae.yaml` or `configs/decoder/reg_upernet_mt_linear.yaml`) and the regression task (e.g. `configs/task/regression.yaml`) configs should be used.
 
 Take Prithvi encoder on BioMassters as example:
 
@@ -343,6 +413,23 @@ Note that for KNN probe:
 - The batch size can be larger since we're only doing inference
 - `finetune` is set to `false` as we're only using the pre-trained encoder
 
+#### Object Detection
+
+Object detection uses a Faster R-CNN head on top of the encoder (`decoder=det_faster_rcnn`), with dedicated preprocessing and task configs. The loss is computed inside the detection head, so `criterion=none`. Evaluation reports mAP. Example on EverWatch (bird detection):
+
+```
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=everwatch \
+   encoder=resnet50_pretrained \
+   decoder=det_faster_rcnn \
+   preprocessing=det_default \
+   criterion=none \
+   task=object_detection
+```
+
+Supported detection datasets: `everwatch`, `nzcattle_det`.
+
 
 ### 💻 End-to-end Finetuning
 
@@ -361,9 +448,9 @@ torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
    finetune=True
 ```
 
-### 💻 Fully Supervised Baseline 
+### 💻 Fully Supervised Baseline
 
-The repo supports also training fully supervised baselines (i.e. UNet and ViT). To run these, follow the same command line rules as for other models. Keep in mind that setting finetune=True is necessary since this fully supervised approach trains the model from scratch. 
+The repo supports also training fully supervised baselines (i.e. UNet and ViT). To run these, follow the same command line rules as for other models. Keep in mind that setting finetune=True is necessary since this fully supervised approach trains the model from scratch.
 An example for single temporal semantic segmentation with UNet is provided (Sen1Floods11 dataset):
 ```
 torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
@@ -402,7 +489,7 @@ Refer to: [Adding a new downstream dataset](CONTRIBUTING.md#adding-a-new-downstr
 
 Refer to: [Adding a new geospatial foundation model](CONTRIBUTING.md#adding-a-new-geospatial-foundation-model)
 
-## 🏃 Evaluation 
+## 🏃 Evaluation
 
 An evaluation step is always run after the training.
 
@@ -411,6 +498,93 @@ If you want to just run an evaluation, indicate the `ckpt_dir` where the checkpo
 ```
 torchrun pangaea/run.py --config-name=test ckpt_dir=path_to_ckpt_dir
 ```
+
+### 🖼️ Prediction visualization outputs
+
+You can save raw predictions and/or PNG comparison panels during evaluation.
+
+Available Hydra overrides:
+- `save_predictions` (bool): save raw output maps as `.tif`
+- `save_visualizations` (bool): save comparison panels as `.png`
+- `save_output_dir` (str or null): output root (defaults to experiment dir)
+- `max_samples_to_visualize` (int): max number of samples to save (`-1` = all)
+- `overwrite` (bool): when `false`, outputs are written in a step-tagged subfolder (e.g. `final_model`, `test_model`)
+- `task.evaluator.rgb_bands` (list): channel indices used for RGB quicklook (default `[2, 1, 0]`)
+
+Output structure:
+- `<save_output_dir>/predictions/*.tif`
+- `<save_output_dir>/visualizations/*.png`
+
+Test-only example:
+```
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=test \
+   ckpt_dir=/path/to/experiment_dir \
+   save_predictions=true \
+   save_visualizations=true \
+   save_output_dir=/path/to/output_dir \
+   max_samples_to_visualize=100 \
+   overwrite=true
+```
+
+Train+eval example (validation visualizations during training):
+```
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=train \
+   dataset=hlsburnscars encoder=remoteclip decoder=seg_upernet \
+   preprocessing=seg_default criterion=cross_entropy task=segmentation \
+   task.evaluator.save_predictions=true \
+   task.evaluator.save_visualizations=true \
+   task.evaluator.max_samples_to_visualize=50
+```
+
+### 🔁 Cross-testing on a different dataset
+
+You can evaluate a trained checkpoint directory on another dataset config without changing the original training config, by simply overriding the dataset config from the command line.
+
+Simple command to cross-evaluate a model on sen1floods11:
+```
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=test \
+   ckpt_dir=/path/to/experiment_dir \
+   dataset=sen1floods11
+```
+
+Example with more options (overriding datset, preprocessing and root_path):
+```
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py \
+   --config-name=test \
+   ckpt_dir=/path/to/experiment_dir \
+   dataset=sen1floods11 \
+   preprocessing=seg_resize \
+   root_path=alternative/path/to/dataset \
+   save_predictions=true \
+   test_log_name=test_sen1.log \
+   save_visualizations=true
+```
+
+Concrete example: training on Sen1Floods11 only on Europe and America tiles, testing on Asia and Africa.
+```
+# training on euramerica
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py --config-name=train \
+    dataset=sen1floods11_euramerica \
+    encoder=terramind_tiny \
+    decoder=seg_upernet \
+    preprocessing=seg_default \
+    criterion=dice \
+    task=segmentation \
+    finetune=False
+
+# testing on africa
+torchrun --nnodes=1 --nproc_per_node=1 pangaea/run.py --config-name=test \
+    ckpt_dir=work-dir/20260324_142305_0589a0_terramind_tiny_seg_upernet_sen1floods11_euramerica \
+    dataset=sen1floods11_africa \
+    save_visualizations=true
+```
+
+
+Notes:
+- Any extra Hydra overrides can be appended at the end of the command.
 
 ## ✏️ Contributing
 We appreciate all contributions. Please refer to [Contributing Guidelines](CONTRIBUTING.md).
@@ -436,13 +610,13 @@ If you find this work useful, please cite:
 
 ```
 @misc{marsocci2024pangaeaglobalinclusivebenchmark,
-      title={PANGAEA: A Global and Inclusive Benchmark for Geospatial Foundation Models}, 
+      title={PANGAEA: A Global and Inclusive Benchmark for Geospatial Foundation Models},
       author={Valerio Marsocci and Yuru Jia and Georges Le Bellier and David Kerekes and Liang Zeng and Sebastian Hafner and Sebastian Gerard and Eric Brune and Ritu Yadav and Ali Shibli and Heng Fang and Yifang Ban and Maarten Vergauwen and Nicolas Audebert and Andrea Nascetti},
       year={2024},
       eprint={2412.04204},
       archivePrefix={arXiv},
       primaryClass={cs.CV},
-      url={https://arxiv.org/abs/2412.04204}, 
+      url={https://arxiv.org/abs/2412.04204},
 }
 ```
 ##  Acknowledge

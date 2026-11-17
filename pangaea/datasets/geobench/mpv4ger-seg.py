@@ -127,7 +127,7 @@ class mPv4GerSeg(RawGeoFMDataset):
             },
             "target": torch.tensor(label, dtype=torch.int64),
             "filename": filename,
-            "metadata": {},
+            "metadata": {"filename": filename},
         }
         
     def download(self, silent=False):
