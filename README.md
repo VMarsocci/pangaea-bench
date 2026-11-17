@@ -106,6 +106,7 @@ And the following **datasets**:
 - **Potsdam dataset** [[Link](https://www.isprs.org/education/benchmarks/UrbanSemLab/2d-sem-label-potsdam.aspx)]. Contributed by [@pierreadorni](https://github.com/pierreadorni).
 - **Open-Canopy** [[Link](https://arxiv.org/abs/2407.09392)]. Contributed by [@pierreadorni](https://github.com/pierreadorni).
 - **Geo-Bench datasets** [[Link](https://github.com/ServiceNow/geo-bench)]. Contributed by [@yurujaja](https://github.com/yurujaja).
+- **AGBD-Lite dataset** [[Link](https://huggingface.co/datasets/prs-eth/AGBD-Lite)]. Contributed by [@ghjuliasialelli](https://github.com/ghjuliasialelli).
 
 The repository supports the following **tasks** using geospatial (foundation) models:
  - [Single Temporal Semantic Segmentation](#single-temporal-semantic-segmentation)
